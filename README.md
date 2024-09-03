@@ -1,0 +1,1 @@
+# Sequelize-test-app
