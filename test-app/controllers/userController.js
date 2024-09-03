@@ -1,22 +1,22 @@
-const ResponseCodes = require("../utils/response.code");
-const {sampleUsers} = require('../utils/user.list')
+const ResponseCodes = require('../utils/response.code');
+const { sampleUsers } = require('../utils/user.list');
 
-let response_code = new ResponseCodes();
-let server_status = response_code.serverError().status;
-let success_status = response_code.success().status;
+let responseCode = new ResponseCodes();
+let serverStatus = responseCode.serverError().status;
+let successStatus = responseCode.success().status;
 
 const getUsers = async (req, res) => {
   try {
-    response_code.message = 'Users list fetched sucessfully!';
-    response_code.data = sampleUsers;
-    return res.status(success_status).send(response_code.success());
+    responseCode.message = 'Users list fetched sucessfully!';
+    responseCode.data = sampleUsers;
+    return res.status(successStatus).send(responseCode.success());
   } catch (error) {
-    response_code.message = 'Something went wrong - Please try again.';
-    response_code.error = error;
-    return res.status(server_status).send(response_code.serverError());
+    responseCode.message = 'Something went wrong - Please try again.';
+    responseCode.error = error;
+    return res.status(serverStatus).send(responseCode.serverError());
   }
 };
 
 module.exports = {
-  getUsers,
+  getUsers
 };
