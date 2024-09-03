@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 var bodyParser = require('body-parser');
 var cors = require('cors');
+const { sequelize } = require('./db/models');
 
 const ResponseCodes = require('./utils/response.code');
 
@@ -26,7 +27,7 @@ app.use(
   })
 );
 
-app.use('/api/user', require('./routes/users.routes'));
+app.use('/api/user', require('./routes/userRoutes'));
 
 app.use((err, req, res, next) => {
   if (err) {
@@ -36,6 +37,11 @@ app.use((err, req, res, next) => {
   }
   next();
 });
+
+sequelize
+  .authenticate()
+  .then(() => console.log('Connection has been successfully established.'))
+  .catch((err) => console.error('Unable to connect to the database:', err));
 
 /* This piece of code is setting up the port for the Express server to listen on. */
 const PORT = process.env.PORT ?? 3000;
