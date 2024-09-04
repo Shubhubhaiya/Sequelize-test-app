@@ -4,7 +4,7 @@ const path = require('path');
 var bodyParser = require('body-parser');
 var cors = require('cors');
 const connectToDatabase = require('./database/connection');
-const ResponseCodes = require('./utils/response.code');
+const ResponseCodes = require('./utils/responseCode');
 
 var corsOptions = {
   origin: '*'
