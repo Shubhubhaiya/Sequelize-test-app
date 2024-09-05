@@ -1,7 +1,9 @@
+const statusCodes = require('../config/statusCodes');
+
 class ResponseCodes {
   success(data = [], message = 'Request was successful', pagination = null) {
     const response = {
-      status: 200,
+      status: statusCodes.SUCCESS,
       message: message,
       data: data,
       error: {}
@@ -17,7 +19,7 @@ class ResponseCodes {
     error = {}
   ) {
     return {
-      status: 400,
+      status: statusCodes.BAD_REQUEST,
       message: message,
       data: [],
       error: error
@@ -26,7 +28,7 @@ class ResponseCodes {
 
   dataNotFound(message = 'Oops! Resource not found, try something different!') {
     return {
-      status: 404,
+      status: statusCodes.NOT_FOUND,
       message: message,
       data: [],
       error: {}
@@ -35,7 +37,7 @@ class ResponseCodes {
 
   unauthorized(message = 'Sorry! Unauthorized access requested!', error = {}) {
     return {
-      status: 401,
+      status: statusCodes.UNAUTHORIZED,
       message: message,
       data: [],
       error: error
@@ -44,7 +46,7 @@ class ResponseCodes {
 
   forbidden(message = 'Oops! Forbidden access', error = {}) {
     return {
-      status: 403,
+      status: statusCodes.FORBIDDEN,
       message: message,
       data: [],
       error: error
@@ -56,7 +58,7 @@ class ResponseCodes {
     error = {}
   ) {
     return {
-      status: 500,
+      status: statusCodes.SERVER_ERROR,
       message: message,
       data: [],
       error: error
@@ -68,7 +70,7 @@ class ResponseCodes {
     error = {}
   ) {
     return {
-      status: 503,
+      status: statusCodes.SERVICE_UNAVAILABLE,
       message: message,
       data: [],
       error: error
