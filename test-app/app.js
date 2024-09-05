@@ -3,6 +3,7 @@ const express = require('express');
 const path = require('path');
 var bodyParser = require('body-parser');
 var cors = require('cors');
+const routes = require('./routes');
 const connectToDatabase = require('./database/connection');
 const ResponseCodes = require('./utils/responseCode');
 
@@ -26,7 +27,7 @@ app.use(
   })
 );
 
-app.use('/api/user', require('./routes/userRoutes'));
+app.use('/api', routes);
 
 app.use((err, req, res, next) => {
   if (err) {
@@ -37,9 +38,10 @@ app.use((err, req, res, next) => {
   next();
 });
 
+connectToDatabase();
+
 /* This piece of code is setting up the port for the Express server to listen on. */
 const PORT = process.env.PORT ?? 3000;
 app.listen(PORT, () => {
-  connectToDatabase();
   console.log(`Listening on port ${PORT}...`);
 });

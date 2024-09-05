@@ -1,113 +1,79 @@
-/* It's a class that returns a JSON object with a status code and a message */
 class ResponseCodes {
-	constructor() { }
+  success(data = [], message = 'Request was successful', pagination = null) {
+    const response = {
+      status: 200,
+      message: message,
+      data: data,
+      error: {}
+    };
+    if (pagination) {
+      response.pagination = pagination;
+    }
+    return response;
+  }
 
-	success() {
-		var data = {
-			status: 200,
-			message: this.message != null || this.message != undefined
-				? this.message
-				: "Request was success",
-			data: this.data != null || this.data != undefined ? this.data : [],
-			error: {}
-		};
-		if (this.pagination) {
-			data.pagination = this.pagination;
-		} else {
-			this.pagination = null;
-		}
-		this.message = null;
-		this.data = null;
-		return data;
-	}
+  badRequest(
+    message = 'Oops! Invalid request, please recheck information!',
+    error = {}
+  ) {
+    return {
+      status: 400,
+      message: message,
+      data: [],
+      error: error
+    };
+  }
 
-	badRequest() {
-		var data = {
-			status: 400,
-			message:
-				this.message != null || this.message != undefined
-					? this.message
-					: "Oops! Invalid request, please recheck information!",
-			error: this.error,
-			data: []
-		};
-		this.message = null;
-		this.error = null;
-		return data;
-	}
+  dataNotFound(message = 'Oops! Resource not found, try something different!') {
+    return {
+      status: 404,
+      message: message,
+      data: [],
+      error: {}
+    };
+  }
 
-	dataNotFound() {
-		var data = {
-			status: 404,
-			message:
-				this.message != null || this.message != undefined
-					? this.message
-					: "Oops! Resource not found, try something different!",
-			data: [],
-			error: {}
-		};
-		this.message = null;
-		return data;
-	}
+  unauthorized(message = 'Sorry! Unauthorized access requested!', error = {}) {
+    return {
+      status: 401,
+      message: message,
+      data: [],
+      error: error
+    };
+  }
 
-	unauthorized() {
-		var data = {
-			status: 401,
-			message:
-				this.message != null || this.message != undefined
-					? this.message
-					: "Sorry! Unauthorized access requested!",
-			error: this.error,
-			data: []
-		};
-		this.message = null;
-		this.error = null;
-		return data;
-	}
+  forbidden(message = 'Oops! Forbidden access', error = {}) {
+    return {
+      status: 403,
+      message: message,
+      data: [],
+      error: error
+    };
+  }
 
-	forbidden() {
-		var data = {
-			status: 403,
-			message:
-				this.message != null || this.message != undefined
-					? this.message
-					: "Oops! Forbidden access",
-			error: this.error,
-			data: []
-		};
-		this.message = null;
-		this.error = null;
-		return data;
-	}
+  serverError(
+    message = 'Due to some technical issue we cannot process your request, please check back later!',
+    error = {}
+  ) {
+    return {
+      status: 500,
+      message: message,
+      data: [],
+      error: error
+    };
+  }
 
-	serverError() {
-		var data = {
-			status: 500,
-			message:
-				this.message != null || this.message != undefined
-					? this.message
-					: "Due to some technical issue we cannot process your request, please check back later!",
-			error: this.error,
-			data: []
-		};
-		this.message = null;
-		this.error = null;
-		return data;
-	}
-
-	serverUnavailable() {
-		var data = {
-			status: 503,
-			message:
-				this.message != null || this.message != undefined
-					? this.message
-					: "Sorry! Our servers are down right now, please check back later!",
-			error: this.error,
-			data: []
-		};
-		this.message = null;
-		this.error = null;
-		return data;
-	}
+  serverUnavailable(
+    message = 'Sorry! Our servers are down right now, please check back later!',
+    error = {}
+  ) {
+    return {
+      status: 503,
+      message: message,
+      data: [],
+      error: error
+    };
+  }
 }
+
 module.exports = ResponseCodes;
