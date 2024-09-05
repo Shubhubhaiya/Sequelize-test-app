@@ -2,9 +2,9 @@
   "name": "test-app",
   "version": "1.0.0",
   "description": "Express application generated with create-express-app-js",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node app.js"
   },
   "keywords": [
     "express",
