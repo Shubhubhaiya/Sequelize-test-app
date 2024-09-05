@@ -5,7 +5,7 @@ const getAllStages = async (req, res) => {
   const response = new ResponseCodes();
 
   try {
-    const stages = await stageService.getAllStages();
+    const stages = await stageService.findAll();
     const result = response.success(
       stages,
       'Stages list fetched successfully!'

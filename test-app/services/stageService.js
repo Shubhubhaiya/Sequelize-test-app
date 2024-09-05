@@ -1,9 +1,9 @@
 const { Stage } = require('../database/models');
+const BaseService = require('./baseService');
 
-class StageService {
-  async getAllStages() {
-    const response = await Stage.findAll();
-    return response;
+class StageService extends BaseService {
+  constructor() {
+    super(Stage);
   }
 }
 
