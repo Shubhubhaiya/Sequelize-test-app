@@ -10,6 +10,7 @@ const getAllStages = async (req, res) => {
       stages,
       'Stages list fetched successfully!'
     );
+
     return res.status(result.status).send(result);
   } catch (error) {
     const result = response.serverError(

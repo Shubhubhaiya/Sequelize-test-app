@@ -2,16 +2,16 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class Stage extends Model {
+  class Role extends Model {
     static associate(models) {
-      Stage.hasMany(models.Deal, {
-        foreignKey: 'currentStage',
-        as: 'deals'
+      Role.hasMany(models.User, {
+        foreignKey: 'roleId',
+        as: 'users'
       });
     }
   }
 
-  Stage.init(
+  Role.init(
     {
       id: {
         type: DataTypes.INTEGER,
@@ -26,10 +26,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'Stage',
+      modelName: 'Role',
       timestamps: false
     }
   );
 
-  return Stage;
+  return Role;
 };

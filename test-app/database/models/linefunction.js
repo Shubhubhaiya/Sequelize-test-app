@@ -2,16 +2,16 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class Stage extends Model {
+  class LineFunction extends Model {
     static associate(models) {
-      Stage.hasMany(models.Deal, {
-        foreignKey: 'currentStage',
-        as: 'deals'
+      LineFunction.hasMany(models.User, {
+        foreignKey: 'lineFunction',
+        as: 'users'
       });
     }
   }
 
-  Stage.init(
+  LineFunction.init(
     {
       id: {
         type: DataTypes.INTEGER,
@@ -26,10 +26,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'Stage',
+      modelName: 'LineFunction',
       timestamps: false
     }
   );
 
-  return Stage;
+  return LineFunction;
 };

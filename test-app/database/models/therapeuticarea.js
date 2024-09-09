@@ -2,16 +2,21 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-  class Stage extends Model {
+  class TherapeuticArea extends Model {
     static associate(models) {
-      Stage.hasMany(models.Deal, {
-        foreignKey: 'currentStage',
+      TherapeuticArea.hasMany(models.Deal, {
+        foreignKey: 'therapeuticArea',
         as: 'deals'
+      });
+      TherapeuticArea.belongsToMany(models.User, {
+        through: models.UserTherapeuticAreas,
+        foreignKey: 'therapeuticAreaId',
+        as: 'users'
       });
     }
   }
 
-  Stage.init(
+  TherapeuticArea.init(
     {
       id: {
         type: DataTypes.INTEGER,
@@ -26,10 +31,10 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: 'Stage',
+      modelName: 'TherapeuticArea',
       timestamps: false
     }
   );
 
-  return Stage;
+  return TherapeuticArea;
 };
