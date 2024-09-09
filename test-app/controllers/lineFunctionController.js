@@ -1,14 +1,14 @@
 const ResponseCodes = require('../utils/responseCode');
-const stageService = require('../services/stageService');
+const lineFunctionService = require('../services/lineFunctionService');
 
-const getAllStages = async (req, res) => {
+const getAllLineFunctions = async (req, res) => {
   const response = new ResponseCodes();
 
   try {
-    const { count, rows } = await stageService.findAndCountAll();
+    const { count, rows } = await lineFunctionService.findAndCountAll();
     const result = response.success(
-      { totalRecords: count, stages: rows },
-      'Stages list fetched successfully!'
+      { totalRecords: count, lineFunctions: rows },
+      'Line functions fetched successfully!'
     );
 
     return res.status(result.status).send(result);
@@ -22,5 +22,5 @@ const getAllStages = async (req, res) => {
 };
 
 module.exports = {
-  getAllStages
+  getAllLineFunctions
 };

@@ -11,6 +11,10 @@ class BaseService {
     return this.model.findAll(options);
   }
 
+  async findAndCountAll(options = {}) {
+    return this.model.findAndCountAll(options);
+  }
+
   async findById(id) {
     return this.model.findByPk(id);
   }
