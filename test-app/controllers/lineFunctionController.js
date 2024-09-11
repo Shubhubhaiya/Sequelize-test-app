@@ -1,7 +1,7 @@
 const ResponseCodes = require('../utils/responseCode');
 const lineFunctionService = require('../services/lineFunctionService');
 
-const getAllLineFunctions = async (req, res) => {
+const getList = async (req, res) => {
   const response = new ResponseCodes();
 
   try {
@@ -22,5 +22,5 @@ const getAllLineFunctions = async (req, res) => {
 };
 
 module.exports = {
-  getAllLineFunctions
+  getList
 };

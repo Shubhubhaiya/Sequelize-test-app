@@ -1,7 +1,7 @@
 const ResponseCodes = require('../utils/responseCode');
 const stageService = require('../services/stageService');
 
-const getAllStages = async (req, res) => {
+const getList = async (req, res) => {
   const response = new ResponseCodes();
 
   try {
@@ -22,5 +22,5 @@ const getAllStages = async (req, res) => {
 };
 
 module.exports = {
-  getAllStages
+  getList
 };
