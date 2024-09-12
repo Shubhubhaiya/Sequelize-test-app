@@ -96,6 +96,14 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true
       },
+
+      phoneNumber: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          is: /^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}$/im // Regex for validating international phone numbers
+        }
+      },
       siteCode: {
         type: DataTypes.STRING,
         allowNull: false
@@ -136,6 +144,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       createdBy: {
         type: DataTypes.INTEGER,
+        allowNull: false,
         references: {
           model: 'Users',
           key: 'id'

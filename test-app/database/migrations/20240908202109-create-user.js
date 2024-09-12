@@ -33,6 +33,10 @@ module.exports = {
         allowNull: false,
         unique: true
       },
+      phoneNumber: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
       siteCode: {
         type: Sequelize.STRING,
         allowNull: false
@@ -78,12 +82,10 @@ module.exports = {
         }
       },
       modifiedAt: {
-        allowNull: true,
         type: Sequelize.DATE
       },
       modifiedBy: {
         type: Sequelize.INTEGER,
-        allowNull: true,
         references: {
           model: 'Users',
           key: 'id'
