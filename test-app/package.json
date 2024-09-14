@@ -2,9 +2,9 @@
   "name": "test-app",
   "version": "1.0.0",
   "description": "Express application generated with create-express-app-js",
-  "main": "app.js",
+  "main": "src/app.js",
   "scripts": {
-    "dev": "nodemon app.js",
+    "dev": "nodemon src/app.js",
     "test": "jest",
     "migrate": "sequelize-cli db:migrate",
     "migrate:undo": "sequelize-cli db:migrate:undo",
