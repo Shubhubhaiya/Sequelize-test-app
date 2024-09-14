@@ -1,23 +1,18 @@
-const ResponseCodes = require('../utils/responseCode');
+const statusCodes = require('../config/statusCodes');
 const lineFunctionService = require('../services/lineFunctionService');
+const responseCodes = require('../utils/responseCode');
 
 const getList = async (req, res) => {
-  const response = new ResponseCodes();
-
   try {
-    const { count, rows } = await lineFunctionService.findAndCountAll();
-    const result = response.success(
-      { totalRecords: count, lineFunctions: rows },
-      'Line functions fetched successfully!'
-    );
-
-    return res.status(result.status).send(result);
+    const result = await lineFunctionService.getAllLineFunctions(req.query);
+    return res.status(statusCodes.SUCCESS).send(result);
   } catch (error) {
+    const response = new responseCodes();
     const result = response.serverError(
       'Unexpected error occurred.',
       error.message
     );
-    return res.status(result.status).send(result);
+    return res.status(statusCodes.SERVER_ERROR).send(result);
   }
 };
 

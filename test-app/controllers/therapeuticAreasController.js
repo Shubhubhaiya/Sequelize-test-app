@@ -1,30 +1,23 @@
-// therapeuticAreaController.js
-const ResponseCodes = require('../utils/responseCode');
+const statusCodes = require('../config/statusCodes');
 const therapeuticAreaService = require('../services/therapeuticAreaService');
+const responseCodes = require('../utils/responseCode');
 
 const getList = async (req, res) => {
-  const response = new ResponseCodes();
-
   try {
-    const { count, rows } = await therapeuticAreaService.findAndCountAll();
-    const responseData = {
-      totalRecords: count,
-      stages: rows
-    };
-    res
-      .status(200)
-      .send(
-        response.success(
-          responseData,
-          'Therapeutic Areas fetched successfully!'
-        )
-      );
+    const result = await therapeuticAreaService.getAllTherapeuticAreas(
+      req.query
+    );
+    return res.status(statusCodes.SUCCESS).send(result);
   } catch (error) {
-    console.error('Failed to fetch therapeutic areas:', error); // Log the error for debugging
-    res
-      .status(500)
-      .send(response.serverError('Unexpected error occurred.', error));
+    const response = new responseCodes();
+    const result = response.serverError(
+      'Unexpected error occurred.',
+      error.message
+    );
+    return res.status(statusCodes.SERVER_ERROR).send(result);
   }
 };
 
-module.exports = { getList };
+module.exports = {
+  getList
+};
