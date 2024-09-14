@@ -28,26 +28,33 @@ class TherapeuticAreaService extends baseService {
 
     const offset = limit ? (page - 1) * limit : undefined;
 
-    // Build the query options
-    const queryOptions = {
-      limit: limit || undefined,
-      offset: offset || undefined
-    };
-
-    // If userId is provided, filter by userId
-    if (userId) {
-      queryOptions.include = [
-        {
-          model: User,
-          as: 'users', // Alias must match the alias in the association
-          where: { id: userId },
-          attributes: [], // Exclude all attributes from the User model
-          through: { attributes: [] } // Exclude attributes from the join table
-        }
-      ];
-    }
-
     try {
+      // Fetch the user's role
+      const user = await User.findByPk(userId);
+
+      if (!user) {
+        return apiResponse.dataNotFound('User not found.');
+      }
+
+      // Build the query options
+      const queryOptions = {
+        limit: limit || undefined,
+        offset: offset || undefined
+      };
+
+      // If the user is a DealLead, filter by userId
+      if (user.roleId === roles.DEAL_LEAD) {
+        queryOptions.include = [
+          {
+            model: User,
+            as: 'users', // Alias must match the alias in the association
+            where: { id: userId },
+            attributes: [], // Exclude all attributes from the User model
+            through: { attributes: [] } // Exclude attributes from the join table
+          }
+        ];
+      }
+
       // Fetch data and count
       const { count, rows } = await this.model.findAndCountAll(queryOptions);
 
