@@ -4,5 +4,6 @@ const therapeuticAreasController = require('../controllers/therapeuticAreasContr
 
 // Route to get all stages
 router.get('/', therapeuticAreasController.getList);
+router.post('/assign', therapeuticAreasController.assignTherapeuticArea);
 
 module.exports = router;
