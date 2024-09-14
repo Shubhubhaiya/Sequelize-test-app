@@ -1,20 +1,19 @@
 const { LineFunction } = require('../database/models');
-const BaseService = require('./baseService');
-const ResponseCodes = require('../utils/responseCode');
+const baseService = require('./baseService');
+const apiResponse = require('../utils/apiResponse');
 
-class LineFunctionService extends BaseService {
+class LineFunctionService extends baseService {
   constructor() {
     super(LineFunction);
   }
 
   async getAllLineFunctions(query) {
-    const response = new ResponseCodes();
     let { page = 1, limit = 10 } = query;
 
     limit = parseInt(limit);
     page = parseInt(page);
 
-    // fetch all records if limit is 0
+    // Fetch all records if limit is 0
     if (!limit) {
       limit = null;
       page = 1; // Set page to 1 for consistency
@@ -30,7 +29,7 @@ class LineFunctionService extends BaseService {
 
     // Handle case where no records are found
     if (count === 0) {
-      return response.dataNotFound('No line functions found.');
+      return apiResponse.dataNotFound();
     }
 
     // Calculate total pages, set to 1 if fetching all records
@@ -44,8 +43,8 @@ class LineFunctionService extends BaseService {
       pageSize: limit || count
     };
 
-    // Construct the response
-    return response.success(rows, pagination);
+    // Construct the success apiResponse
+    return apiResponse.success(rows, pagination);
   }
 }
 

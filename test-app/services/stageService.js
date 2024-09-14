@@ -1,20 +1,19 @@
 const { Stage } = require('../database/models');
-const BaseService = require('./baseService');
-const ResponseCodes = require('../utils/responseCode');
+const baseService = require('./baseService');
+const apiResponse = require('../utils/apiResponse');
 
-class StageService extends BaseService {
+class StageService extends baseService {
   constructor() {
     super(Stage);
   }
 
   async getAllStages(query) {
-    const response = new ResponseCodes();
     let { page = 1, limit = 10 } = query;
 
     limit = parseInt(limit);
     page = parseInt(page);
 
-    // fetch all records if limit is 0
+    // Fetch all records if limit is 0
     if (!limit) {
       limit = null;
       page = 1; // Set page to 1 for consistency
@@ -30,7 +29,7 @@ class StageService extends BaseService {
 
     // Handle case where no records are found
     if (count === 0) {
-      return response.dataNotFound('No Stage data found.');
+      return apiResponse.dataNotFound();
     }
 
     // Calculate total pages, set to 1 if fetching all records
@@ -44,8 +43,8 @@ class StageService extends BaseService {
       pageSize: limit || count
     };
 
-    // Construct the response
-    return response.success(rows, pagination);
+    // Construct the success apiResponse
+    return apiResponse.success(rows, pagination);
   }
 }
 

@@ -1,21 +1,18 @@
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
-var bodyParser = require('body-parser');
-var cors = require('cors');
+const bodyParser = require('body-parser');
+const cors = require('cors');
 const routes = require('./routes');
 const connectToDatabase = require('./database/connection');
-const ResponseCodes = require('./utils/responseCode');
+const apiResponse = require('./utils/apiResponse');
 
-var corsOptions = {
+const corsOptions = {
   origin: '*'
 };
 
 const app = express();
 app.use(express.static(path.join(__dirname, './public')));
-
-let responseCode = new ResponseCodes();
-let serverStatus = responseCode.serverError().status;
 
 app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '50mb' }));
@@ -29,11 +26,14 @@ app.use(
 
 app.use('/api', routes);
 
+// Error handling middleware
 app.use((err, req, res, next) => {
   if (err) {
-    responseCode.message = 'Something went wrong - Please try again.';
-    responseCode.error = err;
-    return res.status(serverStatus).send(responseCode.serverError());
+    const errorResponse = apiResponse.serverError({
+      message: 'Something went wrong - Please try again.',
+      error: err
+    });
+    return res.status(500).send(errorResponse);
   }
   next();
 });

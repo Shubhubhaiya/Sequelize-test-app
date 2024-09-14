@@ -1,6 +1,6 @@
 const statusCodes = require('../config/statusCodes');
 const therapeuticAreaService = require('../services/therapeuticAreaService');
-const responseCodes = require('../utils/responseCode');
+const apiResponse = require('../utils/apiResponse');
 
 const getList = async (req, res) => {
   try {
@@ -9,11 +9,7 @@ const getList = async (req, res) => {
     );
     return res.status(statusCodes.SUCCESS).send(result);
   } catch (error) {
-    const response = new responseCodes();
-    const result = response.serverError(
-      'Unexpected error occurred.',
-      error.message
-    );
+    const result = apiResponse.serverError({ message: error.message });
     return res.status(statusCodes.SERVER_ERROR).send(result);
   }
 };

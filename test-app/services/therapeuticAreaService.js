@@ -1,20 +1,19 @@
 const { TherapeuticArea } = require('../database/models');
-const BaseService = require('./baseService');
-const ResponseCodes = require('../utils/responseCode');
+const baseService = require('./baseService');
+const apiResponse = require('../utils/apiResponse');
 
-class TherapeuticAreaService extends BaseService {
+class TherapeuticAreaService extends baseService {
   constructor() {
     super(TherapeuticArea);
   }
 
   async getAllTherapeuticAreas(query) {
-    const response = new ResponseCodes();
     let { page = 1, limit = 10 } = query;
 
     limit = parseInt(limit);
     page = parseInt(page);
 
-    // fetch all records if limit is 0
+    // Fetch all records if limit is 0
     if (!limit) {
       limit = null;
       page = 1; // Set page to 1 for consistency
@@ -30,7 +29,7 @@ class TherapeuticAreaService extends BaseService {
 
     // Handle case where no records are found
     if (count === 0) {
-      return response.dataNotFound('No Therapeutic Area found.');
+      return apiResponse.dataNotFound();
     }
 
     // Calculate total pages, set to 1 if fetching all records
@@ -44,8 +43,8 @@ class TherapeuticAreaService extends BaseService {
       pageSize: limit || count
     };
 
-    // Construct the response
-    return response.success(rows, pagination);
+    // Construct the success apiResponse
+    return apiResponse.success(rows, pagination);
   }
 }
 
