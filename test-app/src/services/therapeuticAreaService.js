@@ -23,7 +23,7 @@ class TherapeuticAreaService extends baseService {
     // Fetch all records if limit is 0
     if (!limit) {
       limit = null;
-      page = 1; // Set page to 1 for consistency
+      page = 1;
     }
 
     const offset = limit ? (page - 1) * limit : undefined;
@@ -47,10 +47,11 @@ class TherapeuticAreaService extends baseService {
         queryOptions.include = [
           {
             model: User,
-            as: 'users', // Alias must match the alias in the association
+            as: 'users',
             where: { id: userId },
-            attributes: [], // Exclude all attributes from the User model
-            through: { attributes: [] } // Exclude attributes from the join table
+            attributes: [],
+            through: { attributes: [] },
+            require: true
           }
         ];
       }
