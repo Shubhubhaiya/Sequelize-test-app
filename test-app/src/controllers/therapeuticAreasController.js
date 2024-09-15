@@ -4,7 +4,6 @@ const createUsers = require('../utils/createUsers');
 
 const getList = async (req, res) => {
   try {
-    createUsers();
     const result = await therapeuticAreaService.getAllTherapeuticAreas(
       req.query
     );

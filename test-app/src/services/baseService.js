@@ -1,3 +1,5 @@
+const paginationHelper = require('../utils/paginationHelper');
+
 class BaseService {
   constructor(model) {
     this.model = model;
@@ -9,10 +11,6 @@ class BaseService {
 
   async findAll(options = {}) {
     return this.model.findAll(options);
-  }
-
-  async findAndCountAll(options = {}) {
-    return this.model.findAndCountAll(options);
   }
 
   async findById(id) {
@@ -29,6 +27,14 @@ class BaseService {
     const record = await this.model.findByPk(id);
     if (!record) throw new Error('Record not found');
     return record.destroy();
+  }
+
+  async findAndCountAll(query, customOptions = {}) {
+    return paginationHelper.findAndCountAllWithPagination(
+      this.model,
+      query,
+      customOptions
+    );
   }
 }
 

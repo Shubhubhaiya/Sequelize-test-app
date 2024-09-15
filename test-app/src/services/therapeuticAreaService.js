@@ -15,79 +15,47 @@ class TherapeuticAreaService extends baseService {
   }
 
   async getAllTherapeuticAreas(query) {
-    let { page = 1, limit = 10, userId = null } = query;
-
-    limit = parseInt(limit);
-    page = parseInt(page);
-
-    // Fetch all records if limit is 0
-    if (!limit) {
-      limit = null;
-      page = 1;
-    }
-
-    const offset = limit ? (page - 1) * limit : undefined;
-
     try {
-      // Fetch the user's role
-      const user = await User.findByPk(userId);
-
+      const user = await User.findByPk(query.userId);
       if (!user) {
         return apiResponse.dataNotFound('User not found.');
       }
 
-      // Build the query options
-      const queryOptions = {
-        limit: limit || undefined,
-        offset: offset || undefined
-      };
+      const customOptions = {};
 
       // If the user is a DealLead, filter by userId
       if (user.roleId === roles.DEAL_LEAD) {
-        queryOptions.include = [
+        customOptions.include = [
           {
             model: User,
             as: 'users',
-            where: { id: userId },
+            where: { id: user.id },
             attributes: [],
             through: { attributes: [] },
-            require: true
+            required: true
           }
         ];
       }
 
-      // Fetch data and count
-      const { count, rows } = await this.model.findAndCountAll(queryOptions);
+      const { data, pagination } = await this.findAndCountAll(
+        query,
+        customOptions
+      );
 
-      // Handle case where no records are found
-      if (count === 0) {
+      if (data.length === 0) {
         return apiResponse.dataNotFound();
       }
 
-      // Calculate total pages, set to 1 if fetching all records
-      const totalPages = limit ? Math.ceil(count / limit) : 1;
-
-      // Construct the pagination object
-      const pagination = {
-        totalRecords: count,
-        currentPage: page,
-        totalPages: totalPages,
-        pageSize: limit || count
-      };
-
-      // Construct the success apiResponse
-      return apiResponse.success(rows, pagination);
+      return apiResponse.success(data, pagination);
     } catch (error) {
       return apiResponse.serverError({ message: error.message });
     }
   }
 
   async assignTherapeuticAreas(adminUserId, dealLeadId, therapeuticAreaIds) {
-    // Start a new transaction
     const transaction = await sequelize.transaction();
 
     try {
-      // Validate input
       if (
         !adminUserId ||
         !dealLeadId ||
@@ -99,7 +67,6 @@ class TherapeuticAreaService extends baseService {
         );
       }
 
-      // Check if the user is a SystemAdmin
       const adminUser = await User.findByPk(adminUserId);
       if (!adminUser || adminUser.roleId !== roles.SYSTEM_ADMIN) {
         return apiResponse.unauthorized(
@@ -107,7 +74,6 @@ class TherapeuticAreaService extends baseService {
         );
       }
 
-      // Check if the user to be assigned is a DealLead
       const dealLeadUser = await User.findByPk(dealLeadId);
       if (!dealLeadUser || dealLeadUser.roleId !== roles.DEAL_LEAD) {
         return apiResponse.badRequest(
@@ -115,8 +81,8 @@ class TherapeuticAreaService extends baseService {
         );
       }
 
-      // Validate and assign each TherapeuticArea within the transaction
       const assignedAreas = [];
+
       for (const therapeuticAreaId of therapeuticAreaIds) {
         const therapeuticArea = await TherapeuticArea.findByPk(
           therapeuticAreaId,
@@ -129,26 +95,18 @@ class TherapeuticAreaService extends baseService {
           );
         }
 
-        // Assign the TherapeuticArea to the DealLead
         await UserTherapeuticAreas.create(
-          {
-            userId: dealLeadId,
-            therapeuticAreaId: therapeuticAreaId
-          },
+          { userId: dealLeadId, therapeuticAreaId },
           { transaction }
         );
 
         assignedAreas.push(therapeuticArea.name);
       }
 
-      // Commit the transaction if all operations were successful
       await transaction.commit();
 
-      return apiResponse.success(
-        `TherapeuticAreas ${assignedAreas.join(', ')} assigned to DealLead ${dealLeadUser.firstName} ${dealLeadUser.lastName} successfully.`
-      );
+      return apiResponse.success();
     } catch (error) {
-      // Rollback the transaction in case of any error
       await transaction.rollback();
       return apiResponse.serverError({ message: error.message });
     }
