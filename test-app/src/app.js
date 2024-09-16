@@ -6,6 +6,7 @@ const cors = require('cors');
 const routes = require('./routes');
 const connectToDatabase = require('./database/connection');
 const apiResponse = require('./utils/apiResponse');
+const setupSwagger = require('./config/swagger');
 
 const corsOptions = {
   origin: '*'
@@ -37,6 +38,9 @@ app.use((err, req, res, next) => {
   }
   next();
 });
+
+// Setup Swagger after the routes are defined
+setupSwagger(app);
 
 connectToDatabase();
 
