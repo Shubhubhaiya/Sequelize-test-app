@@ -47,7 +47,7 @@ class TherapeuticAreaService extends baseService {
       );
 
       if (data.length === 0) {
-        return apiResponse.dataNotFound();
+        return apiResponse.success();
       }
 
       return apiResponse.success(data, pagination);

@@ -11,7 +11,7 @@ class LineFunctionService extends baseService {
     const { data, pagination } = await this.findAndCountAll(query);
 
     if (data.length === 0) {
-      return apiResponse.dataNotFound();
+      return apiResponse.success();
     }
 
     return apiResponse.success(data, pagination);

@@ -1,6 +1,5 @@
 const therapeuticAreaService = require('../services/therapeuticAreaService');
 const apiResponse = require('../utils/apiResponse');
-const createUsers = require('../utils/createUsers');
 
 const getList = async (req, res) => {
   try {
