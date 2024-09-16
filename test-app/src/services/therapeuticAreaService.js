@@ -16,7 +16,11 @@ class TherapeuticAreaService extends baseService {
 
   async getAllTherapeuticAreas(query) {
     try {
-      const user = await User.findByPk(query.userId);
+      const userId = query.userId;
+      if (!userId) {
+        return apiResponse.badRequest({ message: 'Please provide userId' });
+      }
+      const user = await User.findByPk(userId);
       if (!user) {
         return apiResponse.dataNotFound('User not found.');
       }
