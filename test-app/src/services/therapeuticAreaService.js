@@ -60,17 +60,7 @@ class TherapeuticAreaService extends baseService {
     const transaction = await sequelize.transaction();
 
     try {
-      if (
-        !adminUserId ||
-        !dealLeadId ||
-        !Array.isArray(therapeuticAreaIds) ||
-        therapeuticAreaIds.length === 0
-      ) {
-        return apiResponse.badRequest(
-          'All fields are required and therapeuticAreaIds should be a non-empty array.'
-        );
-      }
-
+      // Fetch the admin user and validate their role
       const adminUser = await User.findByPk(adminUserId);
       if (!adminUser || adminUser.roleId !== roles.SYSTEM_ADMIN) {
         return apiResponse.unauthorized(
@@ -78,6 +68,7 @@ class TherapeuticAreaService extends baseService {
         );
       }
 
+      // Fetch the deal lead user and validate their role
       const dealLeadUser = await User.findByPk(dealLeadId);
       if (!dealLeadUser || dealLeadUser.roleId !== roles.DEAL_LEAD) {
         return apiResponse.badRequest(
@@ -87,11 +78,13 @@ class TherapeuticAreaService extends baseService {
 
       const assignedAreas = [];
 
+      // Loop through the therapeutic area IDs and handle the assignments
       for (const therapeuticAreaId of therapeuticAreaIds) {
         const therapeuticArea = await TherapeuticArea.findByPk(
           therapeuticAreaId,
           { transaction }
         );
+
         if (!therapeuticArea) {
           await transaction.rollback();
           return apiResponse.dataNotFound(
@@ -107,9 +100,12 @@ class TherapeuticAreaService extends baseService {
         assignedAreas.push(therapeuticArea.name);
       }
 
+      // Commit the transaction after all operations are successful
       await transaction.commit();
 
-      return apiResponse.success();
+      return apiResponse.success({
+        message: `Therapeutic Areas ${assignedAreas.join(', ')} assigned successfully to ${dealLeadUser.firstName} ${dealLeadUser.lastName}.`
+      });
     } catch (error) {
       await transaction.rollback();
       return apiResponse.serverError({ message: error.message });

@@ -1,19 +1,22 @@
-const Joi = require('joi');
+const joi = require('joi');
 
-const paginationSchema = Joi.object({
-  page: Joi.number()
+const paginationSchema = joi.object({
+  page: joi
+    .number()
     .integer()
     .min(1)
     .default(1)
     .description('Page number must be a positive integer'),
-  limit: Joi.number()
+  limit: joi
+    .number()
     .integer()
     .min(0)
     .default(null)
     .description(
       'Limit must be a non-negative integer, where 0 or null fetches all records'
     ),
-  userId: Joi.number()
+  userId: joi
+    .number()
     .integer()
     .optional()
     .description('Optional user ID for filtering')
