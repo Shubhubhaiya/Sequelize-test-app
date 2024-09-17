@@ -37,7 +37,7 @@
  *                         example: 1
  *                       name:
  *                         type: string
- *                         example: "Planning"
+ *                         example: "Triage"
  *                 pagination:
  *                   type: object
  *                   properties:

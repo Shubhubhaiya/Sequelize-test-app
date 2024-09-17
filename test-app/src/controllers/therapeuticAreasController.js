@@ -43,7 +43,7 @@
  *                         example: 1
  *                       name:
  *                         type: string
- *                         example: "Oncology"
+ *                         example: "CRM"
  *                 pagination:
  *                   type: object
  *                   properties:
