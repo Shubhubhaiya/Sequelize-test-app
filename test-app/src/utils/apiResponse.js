@@ -1,3 +1,4 @@
+const { response } = require('express');
 const responseMessages = require('../config/responseMessages');
 const statusCodes = require('../config/statusCodes');
 
@@ -5,17 +6,21 @@ class ApiResponse {
   constructor() {
     this.data = null;
     this.error = null;
-    this.pagination = null;
     this.status = null;
   }
 
-  static success(data = [], pagination = null) {
+  static success(data = [], pagination = null, message = null) {
     const response = new ApiResponse();
     response.data = data;
     response.status = statusCodes.SUCCESS;
-    if (pagination) {
+
+    if (pagination !== null) {
       response.pagination = pagination;
     }
+    if (message != null) {
+      response.message = message;
+    }
+
     return response;
   }
 
@@ -37,10 +42,11 @@ class ApiResponse {
     );
   }
 
-  static dataNotFound() {
+  static dataNotFound(errorDetails = {}) {
     return ApiResponse.error(
       responseMessages.DATA_NOT_FOUND,
-      statusCodes.NOT_FOUND
+      statusCodes.NOT_FOUND,
+      errorDetails
     );
   }
 

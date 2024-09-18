@@ -8,6 +8,7 @@ const {
 const baseService = require('./baseService');
 const apiResponse = require('../utils/apiResponse');
 const roles = require('../config/roles');
+const sequelizeErrorHandler = require('../utils/sequelizeErrorHandler');
 
 class TherapeuticAreaService extends baseService {
   constructor() {
@@ -22,7 +23,7 @@ class TherapeuticAreaService extends baseService {
       }
       const user = await User.findByPk(userId);
       if (!user) {
-        return apiResponse.dataNotFound('User not found.');
+        return apiResponse.dataNotFound({ message: 'User not found.' });
       }
 
       const customOptions = {};
@@ -52,7 +53,7 @@ class TherapeuticAreaService extends baseService {
 
       return apiResponse.success(data, pagination);
     } catch (error) {
-      return apiResponse.serverError({ message: error.message });
+      return sequelizeErrorHandler.handle(error);
     }
   }
 
@@ -71,9 +72,9 @@ class TherapeuticAreaService extends baseService {
       // Fetch the deal lead user and validate their role
       const dealLeadUser = await User.findByPk(dealLeadId);
       if (!dealLeadUser || dealLeadUser.roleId !== roles.DEAL_LEAD) {
-        return apiResponse.badRequest(
-          'TherapeuticArea can only be assigned to Deal Leads.'
-        );
+        return apiResponse.badRequest({
+          message: 'TherapeuticArea can only be assigned to Deal Leads.'
+        });
       }
 
       const assignedAreas = [];
@@ -87,9 +88,9 @@ class TherapeuticAreaService extends baseService {
 
         if (!therapeuticArea) {
           await transaction.rollback();
-          return apiResponse.dataNotFound(
-            `TherapeuticArea with ID ${therapeuticAreaId} not found.`
-          );
+          return apiResponse.dataNotFound({
+            message: `TherapeuticArea with ID ${therapeuticAreaId} not found.`
+          });
         }
 
         await UserTherapeuticAreas.create(
@@ -108,7 +109,7 @@ class TherapeuticAreaService extends baseService {
       });
     } catch (error) {
       await transaction.rollback();
-      return apiResponse.serverError({ message: error.message });
+      return sequelizeErrorHandler.handle(error);
     }
   }
 }

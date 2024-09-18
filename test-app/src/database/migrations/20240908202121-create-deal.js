@@ -20,7 +20,9 @@ module.exports = {
         references: {
           model: 'Stages',
           key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
       therapeuticArea: {
         type: Sequelize.INTEGER,
@@ -28,7 +30,9 @@ module.exports = {
         references: {
           model: 'TherapeuticAreas',
           key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
       createdBy: {
         type: Sequelize.INTEGER,
@@ -36,22 +40,27 @@ module.exports = {
         references: {
           model: 'Users',
           key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
       createdAt: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       modifiedBy: {
         type: Sequelize.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
           model: 'Users',
           key: 'id'
-        }
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL'
       },
       modifiedAt: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.DATE
       },
       isDeleted: {

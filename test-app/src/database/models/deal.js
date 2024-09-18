@@ -67,7 +67,9 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         references: {
           model: 'Stages',
-          key: 'id'
+          key: 'id',
+          onUpdate: 'CASCADE',
+          onDelete: 'RESTRICT'
         }
       },
       therapeuticArea: {
@@ -75,7 +77,9 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         references: {
           model: 'TherapeuticAreas',
-          key: 'id'
+          key: 'id',
+          onUpdate: 'CASCADE',
+          onDelete: 'RESTRICT'
         }
       },
       createdBy: {
@@ -83,7 +87,9 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         references: {
           model: 'Users',
-          key: 'id'
+          key: 'id',
+          onUpdate: 'CASCADE',
+          onDelete: 'RESTRICT'
         }
       },
       createdAt: {
@@ -92,15 +98,19 @@ module.exports = (sequelize, DataTypes) => {
       },
       modifiedAt: {
         allowNull: true,
-        type: DataTypes.DATE
+        type: DataTypes.DATE,
+        defaultValue: null
       },
       modifiedBy: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: {
           model: 'Users',
-          key: 'id'
-        }
+          key: 'id',
+          onUpdate: 'CASCADE',
+          onDelete: 'SET NULL'
+        },
+        defaultValue: null
       },
       isDeleted: {
         type: DataTypes.BOOLEAN,
@@ -110,9 +120,14 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Deal',
-      timestamps: true,
+      timestamps: false,
       updatedAt: 'modifiedAt',
-      createdAt: 'createdAt'
+      createdAt: 'createdAt',
+      hooks: {
+        beforeUpdate: (deal, options) => {
+          deal.modifiedAt = new Date(); // Set modifiedAt to the current date
+        }
+      }
     }
   );
 
