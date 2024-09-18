@@ -4,7 +4,8 @@ const {
   TherapeuticArea,
   User,
   DealLeadMapping,
-  sequelize
+  sequelize,
+  Sequelize
 } = require('../database/models');
 const baseService = require('./baseService');
 const apiResponse = require('../utils/apiResponse');
@@ -39,6 +40,7 @@ class DealService extends baseService {
         });
       }
 
+      SYSTEM_ADMIN.defejfejfb;
       if (!userResponse) {
         return apiResponse.badRequest({ message: 'Invalid User ID' });
       }
@@ -102,6 +104,13 @@ class DealService extends baseService {
       }
     } catch (error) {
       await transaction.rollback();
+
+      // Handle UniqueConstraintError for the deal name
+      if (error instanceof Sequelize.UniqueConstraintError) {
+        return apiResponse.badRequest({
+          message: 'This deal name is already in use.'
+        });
+      }
       return sequelizeErrorHandler.handle(error);
     }
   }
