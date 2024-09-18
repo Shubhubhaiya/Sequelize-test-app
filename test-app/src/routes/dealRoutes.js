@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const dealController = require('../controllers/dealController');
+const validateCreateDealSchema = require('../middleware/validateDeal');
 
 /**
  * @swagger
@@ -128,6 +129,6 @@ const dealController = require('../controllers/dealController');
  *           example: false
  */
 
-router.post('/create', dealController.createDeal);
+router.post('/create', validateCreateDealSchema, dealController.createDeal);
 
 module.exports = router;

@@ -40,7 +40,6 @@ class DealService extends baseService {
         });
       }
 
-      SYSTEM_ADMIN.defejfejfb;
       if (!userResponse) {
         return apiResponse.badRequest({ message: 'Invalid User ID' });
       }

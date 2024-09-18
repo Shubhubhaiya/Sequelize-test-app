@@ -1,3 +1,8 @@
+const express = require('express');
+const router = express.Router();
+const lineFunctionController = require('../controllers/lineFunctionController');
+const validatePagination = require('../middleware/validatePagination');
+
 /**
  * @swagger
  * /line-functions:
@@ -80,11 +85,6 @@
  *                   type: object
  *                   example: {}
  */
-
-const express = require('express');
-const router = express.Router();
-const lineFunctionController = require('../controllers/lineFunctionController');
-const validatePagination = require('../middleware/validatePagination');
 
 // Route to get all line functions
 router.get('/', validatePagination, lineFunctionController.getList);
