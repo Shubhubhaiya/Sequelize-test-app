@@ -67,9 +67,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         references: {
           model: 'Stages',
-          key: 'id',
-          onUpdate: 'CASCADE',
-          onDelete: 'RESTRICT'
+          key: 'id'
         }
       },
       therapeuticArea: {
@@ -77,9 +75,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         references: {
           model: 'TherapeuticAreas',
-          key: 'id',
-          onUpdate: 'CASCADE',
-          onDelete: 'RESTRICT'
+          key: 'id'
         }
       },
       createdBy: {
@@ -87,9 +83,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         references: {
           model: 'Users',
-          key: 'id',
-          onUpdate: 'CASCADE',
-          onDelete: 'RESTRICT'
+          key: 'id'
         }
       },
       createdAt: {
@@ -106,9 +100,7 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         references: {
           model: 'Users',
-          key: 'id',
-          onUpdate: 'CASCADE',
-          onDelete: 'SET NULL'
+          key: 'id'
         },
         defaultValue: null
       },

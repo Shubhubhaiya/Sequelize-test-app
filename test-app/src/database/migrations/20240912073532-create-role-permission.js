@@ -7,21 +7,17 @@ module.exports = {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'Roles', // This should match the table name as defined in your Sequelize model
+          model: 'Roles',
           key: 'id'
-        },
-        onDelete: 'CASCADE', // Ensures deletion of relationship when Role is deleted
-        onUpdate: 'CASCADE'
+        }
       },
       permissionId: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'Permissions', // This should match the table name as defined in your Sequelize model
+          model: 'Permissions',
           key: 'id'
-        },
-        onDelete: 'CASCADE', // Ensures deletion of relationship when Permission is deleted
-        onUpdate: 'CASCADE'
+        }
       }
     });
 

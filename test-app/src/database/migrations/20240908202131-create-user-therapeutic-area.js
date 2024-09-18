@@ -5,7 +5,6 @@ module.exports = {
     await queryInterface.createTable('UserTherapeuticAreas', {
       userId: {
         type: Sequelize.INTEGER,
-        primaryKey: true,
         allowNull: false,
         references: {
           model: 'Users',
@@ -14,13 +13,19 @@ module.exports = {
       },
       therapeuticAreaId: {
         type: Sequelize.INTEGER,
-        primaryKey: true,
         allowNull: false,
         references: {
           model: 'TherapeuticAreas',
           key: 'id'
         }
       }
+    });
+
+    // Define a composite primary key if you want to ensure unique combinations
+    await queryInterface.addConstraint('UserTherapeuticAreas', {
+      fields: ['userId', 'therapeuticAreaId'],
+      type: 'primary key',
+      name: 'pk_user_therapeutic_areas'
     });
   },
 

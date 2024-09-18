@@ -12,25 +12,31 @@ module.exports = (sequelize, DataTypes) => {
     {
       userId: {
         type: DataTypes.INTEGER,
-        primaryKey: true,
         references: {
           model: 'Users',
           key: 'id'
-        }
+        },
+        allowNull: false
       },
       therapeuticAreaId: {
         type: DataTypes.INTEGER,
-        primaryKey: true,
         references: {
           model: 'TherapeuticAreas',
           key: 'id'
-        }
+        },
+        allowNull: false
       }
     },
     {
       sequelize,
       modelName: 'UserTherapeuticAreas',
-      timestamps: false
+      timestamps: false,
+      indexes: [
+        {
+          unique: true, // Ensures combination of userId and therapeuticAreaId is unique
+          fields: ['userId', 'therapeuticAreaId']
+        }
+      ]
     }
   );
 

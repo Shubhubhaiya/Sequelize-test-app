@@ -2,7 +2,8 @@ const {
   TherapeuticArea,
   User,
   UserTherapeuticAreas,
-  sequelize
+  sequelize,
+  Sequelize
 } = require('../database/models');
 
 const baseService = require('./baseService');
@@ -77,8 +78,6 @@ class TherapeuticAreaService extends baseService {
         });
       }
 
-      const assignedAreas = [];
-
       // Loop through the therapeutic area IDs and handle the assignments
       for (const therapeuticAreaId of therapeuticAreaIds) {
         const therapeuticArea = await TherapeuticArea.findByPk(
@@ -93,19 +92,27 @@ class TherapeuticAreaService extends baseService {
           });
         }
 
-        await UserTherapeuticAreas.create(
-          { userId: dealLeadId, therapeuticAreaId },
-          { transaction }
-        );
-
-        assignedAreas.push(therapeuticArea.name);
+        try {
+          await UserTherapeuticAreas.create(
+            { userId: dealLeadId, therapeuticAreaId },
+            { transaction }
+          );
+        } catch (error) {
+          if (error instanceof Sequelize.UniqueConstraintError) {
+            // Handle the composite key violation by including the therapeutic area name in the error
+            return apiResponse.badRequest({
+              message: `Deal lead is already associated with the therapeutic area "${therapeuticArea.name}".`
+            });
+          }
+          throw error;
+        }
       }
 
       // Commit the transaction after all operations are successful
       await transaction.commit();
 
       return apiResponse.success({
-        message: `Therapeutic Areas ${assignedAreas.join(', ')} assigned successfully to ${dealLeadUser.firstName} ${dealLeadUser.lastName}.`
+        message: 'Therapeutic Areas assigned successfully.'
       });
     } catch (error) {
       await transaction.rollback();

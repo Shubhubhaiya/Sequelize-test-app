@@ -29,7 +29,8 @@ class SequelizeErrorHandler {
     const field = error.errors[0]?.path || 'field';
     const value = error.errors[0]?.value || 'value';
     return apiResponse.badRequest({
-      message: `The value "${value}" for ${field} must be unique.`
+      // message: `The value "${value}" for ${field} must be unique.`
+      message: error.errors[0].message
     });
   }
 
