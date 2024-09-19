@@ -81,6 +81,14 @@ class ApiResponse {
       errorDetails
     );
   }
+
+  static conflict(errorDetails = {}) {
+    return ApiResponse.error(
+      responseMessages.CONFLICT,
+      statusCodes.CONFLICT,
+      errorDetails
+    );
+  }
 }
 
 module.exports = ApiResponse;

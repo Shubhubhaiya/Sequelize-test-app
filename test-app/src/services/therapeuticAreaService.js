@@ -100,7 +100,7 @@ class TherapeuticAreaService extends baseService {
         } catch (error) {
           if (error instanceof Sequelize.UniqueConstraintError) {
             // Handle the composite key violation by including the therapeutic area name in the error
-            return apiResponse.badRequest({
+            return apiResponse.conflict({
               message: `Deal lead is already associated with the therapeutic area "${therapeuticArea.name}".`
             });
           }

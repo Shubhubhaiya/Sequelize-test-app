@@ -131,4 +131,123 @@ const validateCreateDealSchema = require('../middleware/validateDeal');
 
 router.post('/create', validateCreateDealSchema, dealController.createDeal);
 
+/**
+ * @swagger
+ * /deals/{id}:
+ *   put:
+ *     summary: Update an existing deal
+ *     description: Updates a deal. The deal `id` is not editable, but all other fields are.
+ *     tags:
+ *       - Deals
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: The ID of the deal to update.
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Updated Deal Name"
+ *                 description: The name of the deal.
+ *               stage:
+ *                 type: integer
+ *                 example: 1
+ *                 description: The ID of the stage.
+ *               therapeuticArea:
+ *                 type: integer
+ *                 example: 7
+ *                 description: The ID of the therapeutic area.
+ *               userId:
+ *                 type: integer
+ *                 example: 1
+ *                 description: The ID of the user updating the deal.
+ *               dealLead:
+ *                 type: integer
+ *                 example: 2
+ *                 description: (Optional) The ID of the deal lead.
+ *     responses:
+ *       200:
+ *         description: Deal updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Deal updated successfully"
+ *                 error:
+ *                   type: null
+ *                 status:
+ *                   type: integer
+ *                   example: 200
+ *       400:
+ *         description: Bad Request
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: null
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Invalid Stage ID"
+ *                 status:
+ *                   type: integer
+ *                   example: 400
+ *       404:
+ *         description: Deal Not Found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: null
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Deal not found"
+ *                 status:
+ *                   type: integer
+ *                   example: 404
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: null
+ *                 error:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Due to some technical issue we cannot process your request, please check back later!"
+ *                 status:
+ *                   type: integer
+ *                   example: 500
+ */
+
+router.put('/:id', validateCreateDealSchema, dealController.updateDeal);
+
 module.exports = router;

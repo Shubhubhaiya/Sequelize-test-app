@@ -10,6 +10,7 @@ const {
 const baseService = require('./baseService');
 const apiResponse = require('../utils/apiResponse');
 const sequelizeErrorHandler = require('../utils/sequelizeErrorHandler');
+const roles = require('../config/roles');
 
 class DealService extends baseService {
   constructor() {
@@ -20,7 +21,16 @@ class DealService extends baseService {
     const transaction = await sequelize.transaction();
 
     try {
-      const { name, stage, therapeuticArea, userId, dealLead } = data;
+      const { name, stage, therapeuticArea, userId } = data;
+      let { dealLead } = data;
+
+      // Check for duplicate deal name
+      const existingDeal = await Deal.findOne({ where: { name } });
+      if (existingDeal) {
+        return apiResponse.conflict({
+          message: 'This deal name is already in use.'
+        });
+      }
 
       // Validate that stage, therapeuticArea, and userId exist
       const [stageResponse, therapeuticAreaResponse, userResponse] =
@@ -42,6 +52,11 @@ class DealService extends baseService {
 
       if (!userResponse) {
         return apiResponse.badRequest({ message: 'Invalid User ID' });
+      }
+
+      // by default the dealLead who created the deal is deal lead of that deal
+      if (userResponse.roleId == roles.DEAL_LEAD) {
+        dealLead = userResponse.id;
       }
 
       // If dealLead is provided, validate that the dealLead is associated with the given Therapeutic Area
@@ -92,24 +107,85 @@ class DealService extends baseService {
             name,
             currentStage: stage,
             therapeuticArea,
-            createdBy: userId,
-            modifiedBy: userId
+            createdBy: userId
           },
           { transaction }
         );
 
         await transaction.commit();
-        return apiResponse.success(newDeal);
+        return apiResponse.success({ message: 'Deal created successfully' });
       }
     } catch (error) {
       await transaction.rollback();
+      return sequelizeErrorHandler.handle(error);
+    }
+  }
 
-      // Handle UniqueConstraintError for the deal name
-      if (error instanceof Sequelize.UniqueConstraintError) {
-        return apiResponse.badRequest({
-          message: 'This deal name is already in use.'
-        });
+  async updateDeal(id, data) {
+    const transaction = await sequelize.transaction();
+
+    try {
+      const { name, stage, therapeuticArea, userId, dealLead } = data;
+
+      // Check if another deal with the same name exists (but not the current deal)
+      const existingDeal = await Deal.findOne({
+        where: {
+          name,
+          id: { [Sequelize.Op.ne]: id } // Ensure that we are looking for other deals with the same name
+        },
+        transaction
+      });
+
+      if (existingDeal) {
+        await transaction.rollback();
+        return apiResponse.badRequest({ message: 'Deal name already exists.' });
       }
+
+      // Proceed to update the deal
+      await Deal.update(
+        {
+          name,
+          currentStage: stage,
+          therapeuticArea,
+          modifiedBy: userId
+        },
+        {
+          where: { id }, // Update the deal with the matching `id`
+          transaction
+        }
+      );
+
+      // Check if `dealLead` is provided in the request body
+      if (dealLead) {
+        // Either update or insert into DealLeadMapping table
+        await DealLeadMapping.upsert(
+          {
+            dealId: id,
+            userId: dealLead,
+            isDeleted: false
+          },
+          {
+            where: { dealId: id, userId: dealLead },
+            transaction
+          }
+        );
+      } else {
+        // If no `dealLead` provided, mark existing mappings as `isDeleted: true`
+        await DealLeadMapping.update(
+          {
+            isDeleted: true
+          },
+          {
+            where: { dealId: id },
+            transaction
+          }
+        );
+      }
+
+      await transaction.commit();
+      return apiResponse.success({ message: 'Deal updated successfully' });
+    } catch (error) {
+      await transaction.rollback();
       return sequelizeErrorHandler.handle(error);
     }
   }
