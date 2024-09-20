@@ -25,9 +25,15 @@ const getDealDetail = async (req, res) => {
   return res.status(result.status).send(result);
 };
 
+const getDealsList = async (req, res) => {
+  const result = await dealService.getDealsList(req.body);
+  return res.status(result.status).send(result);
+};
+
 module.exports = {
   createDeal,
   updateDeal,
   deleteDeal,
-  getDealDetail
+  getDealDetail,
+  getDealsList
 };

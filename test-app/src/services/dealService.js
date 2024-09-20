@@ -12,6 +12,7 @@ const baseService = require('./baseService');
 const apiResponse = require('../utils/apiResponse');
 const sequelizeErrorHandler = require('../utils/sequelizeErrorHandler');
 const roles = require('../config/roles');
+const PaginationHelper = require('../utils/paginationHelper');
 
 class DealService extends baseService {
   constructor() {
@@ -410,6 +411,165 @@ class DealService extends baseService {
       };
 
       return apiResponse.success(response);
+    } catch (error) {
+      return apiResponse.serverError({ message: error.message });
+    }
+  }
+
+  async getDealsList(query) {
+    try {
+      const { filters, page = 1, limit = 10 } = query;
+      const offset = limit ? (page - 1) * limit : undefined;
+
+      // Build filter criteria
+      const where = { isDeleted: false };
+      const include = [
+        {
+          model: Stage,
+          as: 'stage',
+          attributes: ['id', 'name']
+        },
+        {
+          model: TherapeuticArea,
+          as: 'therapeuticAreaAssociation',
+          attributes: ['id', 'name']
+        },
+        {
+          model: User,
+          as: 'leadUsers',
+          attributes: ['id', 'firstName', 'lastName'],
+          through: {
+            attributes: [],
+            where: { isDeleted: false }
+          }
+        }
+      ];
+
+      if (filters) {
+        // Filter by deal name
+        if (filters.name) {
+          where.name = { [Sequelize.Op.iLike]: `%${filters.name}%` };
+        }
+
+        // Filter by therapeutic area
+        if (filters.therapeuticArea && filters.therapeuticArea.length) {
+          where.therapeuticArea = {
+            [Sequelize.Op.in]: filters.therapeuticArea
+          };
+        }
+
+        // Filter by stage
+        if (filters.stage && filters.stage.length) {
+          where.currentStage = { [Sequelize.Op.in]: filters.stage };
+        }
+
+        // Filter by createdBy (firstName or lastName)
+        if (filters.createdBy) {
+          include.push({
+            model: User,
+            as: 'creator',
+            attributes: ['id', 'firstName', 'lastName'],
+            where: {
+              [Sequelize.Op.or]: [
+                {
+                  firstName: { [Sequelize.Op.iLike]: `%${filters.createdBy}%` }
+                },
+                { lastName: { [Sequelize.Op.iLike]: `%${filters.createdBy}%` } }
+              ]
+            }
+          });
+        }
+
+        // Filter by modifiedBy (firstName or lastName)
+        if (filters.modifiedBy) {
+          include.push({
+            model: User,
+            as: 'modifier',
+            attributes: ['id', 'firstName', 'lastName'],
+            where: {
+              [Sequelize.Op.or]: [
+                {
+                  firstName: { [Sequelize.Op.iLike]: `%${filters.modifiedBy}%` }
+                },
+                {
+                  lastName: { [Sequelize.Op.iLike]: `%${filters.modifiedBy}%` }
+                }
+              ]
+            }
+          });
+        }
+
+        // Filter by createdAt date
+        if (filters.createdAt) {
+          where.createdAt = { [Sequelize.Op.eq]: new Date(filters.createdAt) };
+        }
+
+        // Filter by modifiedAt date
+        if (filters.modifiedAt) {
+          where.modifiedAt = {
+            [Sequelize.Op.eq]: new Date(filters.modifiedAt)
+          };
+        }
+
+        // Filter by dealLead name (firstName or lastName)
+        if (filters.dealLead) {
+          include.push({
+            model: User,
+            as: 'leadUsers',
+            attributes: ['id', 'firstName', 'lastName'],
+            through: {
+              attributes: [],
+              where: { isDeleted: false }
+            },
+            where: {
+              [Sequelize.Op.or]: [
+                {
+                  firstName: { [Sequelize.Op.iLike]: `%${filters.dealLead}%` }
+                },
+                { lastName: { [Sequelize.Op.iLike]: `%${filters.dealLead}%` } }
+              ]
+            }
+          });
+        }
+      }
+
+      // Fetch data and pagination
+      const { count, rows } = await Deal.findAndCountAll({
+        where,
+        include,
+        limit,
+        offset
+      });
+
+      // Create response object
+      const deals = rows.map((deal) => ({
+        id: deal.id,
+        name: deal.name,
+        therapeuticArea: {
+          id: deal.therapeuticAreaAssociation?.id,
+          name: deal.therapeuticAreaAssociation?.name
+        },
+        stage: {
+          id: deal.stage?.id,
+          name: deal.stage?.name
+        },
+        createdBy: deal.createdBy,
+        createdAt: deal.createdAt,
+        modifiedBy: deal.modifiedBy,
+        modifiedAt: deal.modifiedAt,
+        dealLeads: deal.leadUsers.map((leadUser) => ({
+          id: leadUser.id,
+          name: `${leadUser.firstName} ${leadUser.lastName}`
+        }))
+      }));
+
+      const pagination = PaginationHelper.createPaginationObject(
+        count,
+        page,
+        limit
+      );
+
+      return apiResponse.success(deals, pagination);
     } catch (error) {
       return apiResponse.serverError({ message: error.message });
     }

@@ -429,4 +429,114 @@ router.delete('/:id', dealController.deleteDeal);
 
 router.get('/:id', dealController.getDealDetail);
 
+/**
+ * @swagger
+ * /deals/list:
+ *   post:
+ *     summary: Get deals list with filters and pagination
+ *     description: Fetch deals based on filters, with pagination.
+ *     tags:
+ *       - Deals
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               userId:
+ *                 type: integer
+ *                 example: 1
+ *               filters:
+ *                 type: object
+ *                 properties:
+ *                   name:
+ *                     type: string
+ *                     example: "Deal Name"
+ *                   therapeuticArea:
+ *                     type: array
+ *                     items:
+ *                       type: integer
+ *                     example: [1, 2, 3]
+ *                   stage:
+ *                     type: array
+ *                     items:
+ *                       type: integer
+ *                     example: [1, 2, 3]
+ *                   createdBy:
+ *                     type: string
+ *                     example: "John"
+ *                   createdAt:
+ *                     type: string
+ *                     format: date
+ *                     example: "2024-09-24"
+ *                   modifiedBy:
+ *                     type: string
+ *                     example: "Doe"
+ *                   modifiedAt:
+ *                     type: string
+ *                     format: date
+ *                     example: "2024-09-24"
+ *                   dealLead:
+ *                     type: string
+ *                     example: "LeadName"
+ *               page:
+ *                 type: integer
+ *                 example: 1
+ *               limit:
+ *                 type: integer
+ *                 example: 10
+ *     responses:
+ *       200:
+ *         description: Successful response
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: integer
+ *                       name:
+ *                         type: string
+ *                       therapeuticArea:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                       stage:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: integer
+ *                           name:
+ *                             type: string
+ *                       createdBy:
+ *                         type: integer
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       modifiedBy:
+ *                         type: integer
+ *                       modifiedAt:
+ *                         type: string
+ *                         format: date-time
+ *                       dealLeads:
+ *                         type: array
+ *                         items:
+ *                           type: object
+ *                           properties:
+ *                             id:
+ *                               type: integer
+ *                             name:
+ *                               type: string
+ */
+router.post('/list', dealController.getDealsList);
+
 module.exports = router;
