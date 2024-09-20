@@ -12,7 +12,15 @@ const updateDeal = async (req, res) => {
   return res.status(result.status).send(result);
 };
 
+const deleteDeal = async (req, res) => {
+  const dealId = parseInt(req.params.id);
+  const userId = req.body.userId;
+  const result = await dealService.deleteDeal(dealId, userId);
+  return res.status(result.status).send(result);
+};
+
 module.exports = {
   createDeal,
-  updateDeal
+  updateDeal,
+  deleteDeal
 };

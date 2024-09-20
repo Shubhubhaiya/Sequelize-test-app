@@ -4,6 +4,7 @@ const {
   TherapeuticArea,
   User,
   DealLeadMapping,
+  DealWiseResourceInfo,
   sequelize,
   Sequelize
 } = require('../database/models');
@@ -284,6 +285,66 @@ class DealService extends baseService {
 
       await transaction.commit();
       return apiResponse.success({ message: 'Deal updated successfully' });
+    } catch (error) {
+      await transaction.rollback();
+      return sequelizeErrorHandler.handle(error);
+    }
+  }
+
+  async deleteDeal(dealId, userId) {
+    const transaction = await sequelize.transaction();
+
+    try {
+      // Fetch the deal to delete
+      const deal = await Deal.findByPk(dealId);
+
+      if (!deal) {
+        return apiResponse.dataNotFound({ message: 'Deal not found.' });
+      }
+
+      // Check if the deal is already deleted
+      if (deal.isDeleted) {
+        return apiResponse.badRequest({
+          message: 'This Deal is already deleted.'
+        });
+      }
+
+      // Fetch the user to check their role
+      const user = await User.findByPk(userId);
+
+      if (!user) {
+        await transaction.rollback();
+        return apiResponse.badRequest({ message: 'Invalid User ID' });
+      }
+
+      // Ensure deal leads can only delete their own deals
+      if (user.roleId === roles.DEAL_LEAD && deal.createdBy !== userId) {
+        return apiResponse.forbidden({
+          message: 'You are not authorized to delete this deal.'
+        });
+      }
+
+      // Soft delete the deal by setting the isDeleted flag to true
+      await deal.update(
+        { isDeleted: true, modifiedBy: userId },
+        { transaction }
+      );
+
+      // Soft delete associated DealLeadMapping records
+      await DealLeadMapping.update(
+        { isDeleted: true },
+        { where: { dealId }, transaction }
+      );
+
+      // Soft delete associated DealWiseResourceInfo records
+      await DealWiseResourceInfo.update(
+        { isDeleted: true },
+        { where: { dealId }, transaction }
+      );
+
+      // Commit the transaction after all operations are successful
+      await transaction.commit();
+      return apiResponse.success({ message: 'Deal deleted successfully.' });
     } catch (error) {
       await transaction.rollback();
       return sequelizeErrorHandler.handle(error);
