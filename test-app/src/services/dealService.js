@@ -359,19 +359,19 @@ class DealService extends baseService {
         include: [
           {
             model: Stage,
-            as: 'stage', // Alias for the stage association
+            as: 'stage',
             attributes: ['id', 'name']
           },
           {
             model: TherapeuticArea,
-            as: 'therapeuticAreaAssociation', // Alias for the therapeutic area association
+            as: 'therapeuticAreaAssociation',
             attributes: ['id', 'name']
           },
           {
             model: User,
-            as: 'leadUsers', // Alias for the deal lead association
+            as: 'leadUsers',
             through: {
-              attributes: [], // Exclude join table attributes
+              attributes: [],
               where: { isDeleted: false } // Fetch only active (non-deleted) deal leads
             },
             attributes: [
