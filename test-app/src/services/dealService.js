@@ -350,6 +350,70 @@ class DealService extends baseService {
       return sequelizeErrorHandler.handle(error);
     }
   }
+
+  async getDealDetail(dealId) {
+    try {
+      // Fetch the deal along with the related models (Stage, TherapeuticArea, and DealLead)
+      const deal = await Deal.findOne({
+        where: { id: dealId },
+        include: [
+          {
+            model: Stage,
+            as: 'stage', // Alias for the stage association
+            attributes: ['id', 'name']
+          },
+          {
+            model: TherapeuticArea,
+            as: 'therapeuticAreaAssociation', // Alias for the therapeutic area association
+            attributes: ['id', 'name']
+          },
+          {
+            model: User,
+            as: 'leadUsers', // Alias for the deal lead association
+            through: {
+              attributes: [], // Exclude join table attributes
+              where: { isDeleted: false } // Fetch only active (non-deleted) deal leads
+            },
+            attributes: [
+              'email',
+              'novartis521ID',
+              'firstName',
+              'lastName',
+              'title'
+            ]
+          }
+        ]
+      });
+
+      if (!deal) {
+        return apiResponse.dataNotFound({ message: 'Deal not found' });
+      }
+
+      // Constructing the response format as per your requirement
+      const response = {
+        name: deal.name,
+        stage: {
+          id: deal.stage.id,
+          name: deal.stage.name
+        },
+        therapeuticArea: {
+          id: deal.therapeuticAreaAssociation.id,
+          name: deal.therapeuticAreaAssociation.name
+        },
+        dealLeads: deal.leadUsers.map((leadUser) => ({
+          email: leadUser.email,
+          novartis521ID: leadUser.novartis521ID,
+          firstName: leadUser.firstName,
+          lastName: leadUser.lastName,
+          title: leadUser.title
+        }))
+      };
+
+      return apiResponse.success(response);
+    } catch (error) {
+      return apiResponse.serverError({ message: error.message });
+    }
+  }
 }
 
 module.exports = new DealService();

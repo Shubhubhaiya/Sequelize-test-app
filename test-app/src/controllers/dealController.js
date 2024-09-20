@@ -19,8 +19,15 @@ const deleteDeal = async (req, res) => {
   return res.status(result.status).send(result);
 };
 
+const getDealDetail = async (req, res) => {
+  const dealId = req.params.id;
+  const result = await dealService.getDealDetail(dealId);
+  return res.status(result.status).send(result);
+};
+
 module.exports = {
   createDeal,
   updateDeal,
-  deleteDeal
+  deleteDeal,
+  getDealDetail
 };
