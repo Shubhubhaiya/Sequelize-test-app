@@ -1,3 +1,8 @@
+const express = require('express');
+const router = express.Router();
+const stageController = require('../controllers/stageController');
+const validatePagination = require('../middleware/validatePagination');
+
 /**
  * @swagger
  * /stages:
@@ -25,66 +30,83 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                         example: 1
- *                       name:
- *                         type: string
- *                         example: "Triage"
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     totalRecords:
- *                       type: integer
- *                       example: 50
- *                     currentPage:
- *                       type: integer
- *                       example: 1
- *                     totalPages:
- *                       type: integer
- *                       example: 5
- *                     pageSize:
- *                       type: integer
- *                       example: 10
+ *               $ref: '#/components/schemas/StagesResponse'
  *       400:
  *         description: Invalid request parameters.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Oops! Invalid request, please recheck information!"
- *                 error:
- *                   type: object
- *                   example: {}
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Internal server error.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   example: "Unexpected error occurred."
- *                 error:
- *                   type: object
- *                   example: {}
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *
+ * components:
+ *   schemas:
+ *     Stage:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: integer
+ *           example: 1
+ *           description: The unique identifier of the stage.
+ *         name:
+ *           type: string
+ *           example: "Triage"
+ *           description: The name of the stage.
+ *     Pagination:
+ *       type: object
+ *       properties:
+ *         totalRecords:
+ *           type: integer
+ *           example: 50
+ *           description: Total number of records available.
+ *         currentPage:
+ *           type: integer
+ *           example: 1
+ *           description: Current page number.
+ *         totalPages:
+ *           type: integer
+ *           example: 5
+ *           description: Total number of pages.
+ *         pageSize:
+ *           type: integer
+ *           example: 10
+ *           description: Number of records per page.
+ *     StagesResponse:
+ *       type: object
+ *       properties:
+ *         data:
+ *           type: array
+ *           description: List of stages.
+ *           items:
+ *             $ref: '#/components/schemas/Stage'
+ *         error:
+ *           type: object
+ *           nullable: true
+ *           example: null
+ *           description: Error object if an error occurred; otherwise, null.
+ *         status:
+ *           type: integer
+ *           example: 200
+ *           description: HTTP status code.
+ *         pagination:
+ *           $ref: '#/components/schemas/Pagination'
+ *     ErrorResponse:
+ *       type: object
+ *       properties:
+ *         message:
+ *           type: string
+ *           example: "Oops! Invalid request, please recheck information!"
+ *           description: Error message detailing what went wrong.
+ *         error:
+ *           type: object
+ *           example: {}
+ *           description: Additional error details.
  */
-
-const express = require('express');
-const router = express.Router();
-const stageController = require('../controllers/stageController');
-const validatePagination = require('../middleware/validatePagination');
 
 // Route to get all stages
 router.get('/', validatePagination, stageController.getList);

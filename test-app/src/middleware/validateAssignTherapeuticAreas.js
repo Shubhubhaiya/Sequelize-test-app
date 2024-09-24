@@ -1,12 +1,12 @@
-const {
-  assignTherapeuticAreasSchema
-} = require('../validation/assignTherapeuticAreaSchema');
 const apiResponse = require('../utils/apiResponse');
 const statusCodes = require('../config/statusCodes');
+const {
+  assignTherapeuticAreasRequest
+} = require('../models/request/assignTherapeuticAreasRequest');
 
 // Middleware for validating the request body for assigning therapeutic areas
 const validateAssignTherapeuticAreas = (req, res, next) => {
-  const { error } = assignTherapeuticAreasSchema.validate(req.body);
+  const { error } = assignTherapeuticAreasRequest.validate(req.body);
 
   if (error) {
     return res

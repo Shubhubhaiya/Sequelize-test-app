@@ -1,6 +1,6 @@
 const joi = require('joi');
 
-const assignTherapeuticAreasSchema = joi
+const assignTherapeuticAreasRequest = joi
   .object({
     adminUserId: joi.number().integer().required().messages({
       'any.required': 'Admin user ID is required.',
@@ -29,5 +29,5 @@ const assignTherapeuticAreasSchema = joi
   .options({ convert: false }); // Add convert: false to prevent coercion
 
 module.exports = {
-  assignTherapeuticAreasSchema
+  assignTherapeuticAreasRequest
 };
