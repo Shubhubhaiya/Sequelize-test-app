@@ -15,7 +15,12 @@ const corsOptions = {
 const app = express();
 app.use(express.static(path.join(__dirname, './public')));
 
+// Parse application/x-www-form-urlencoded
+app.use(bodyParser.urlencoded({ extended: false }));
+
 app.use(cors(corsOptions));
+// Parse application/json
+
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(
   bodyParser.urlencoded({

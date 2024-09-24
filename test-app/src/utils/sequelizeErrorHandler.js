@@ -1,7 +1,5 @@
-// src/utils/errorHandler.js
-
 const { Sequelize } = require('sequelize');
-const apiResponse = require('./apiResponse');
+const statusCodes = require('../config/statusCodes');
 
 class SequelizeErrorHandler {
   static handle(error) {
@@ -26,39 +24,41 @@ class SequelizeErrorHandler {
   }
 
   static handleUniqueConstraintError(error) {
-    const field = error.errors[0]?.path || 'field';
-    const value = error.errors[0]?.value || 'value';
-    return apiResponse.badRequest({
-      // message: `The value "${value}" for ${field} must be unique.`
-      message: error.errors[0].message
-    });
+    const message = error.errors[0]?.message || 'Unique constraint error.';
+    const err = new Error(message);
+    err.statusCode = statusCodes.BAD_REQUEST;
+    throw err;
   }
 
   static handleForeignKeyConstraintError(error) {
     const table = error.table || 'related entity';
-    return apiResponse.badRequest({
-      message: `Invalid reference. The specified ${table} does not exist.`
-    });
+    const message = `Invalid reference. The specified ${table} does not exist.`;
+    const err = new Error(message);
+    err.statusCode = statusCodes.BAD_REQUEST;
+    throw err;
   }
 
   static handleValidationError(error) {
     const messages = error.errors.map((err) => err.message);
-    return apiResponse.badRequest({
-      message: 'Validation failed.',
-      details: messages
-    });
+    const message = 'Validation failed.';
+    const err = new Error(message);
+    err.statusCode = statusCodes.BAD_REQUEST;
+    err.details = messages;
+    throw err;
   }
 
   static handleDatabaseError(error) {
-    return apiResponse.serverError({
-      message: 'A database error occurred.'
-    });
+    const message = 'A database error occurred.';
+    const err = new Error(message);
+    err.statusCode = statusCodes.SERVER_ERROR;
+    throw err;
   }
 
   static handleGenericError(error) {
-    return apiResponse.serverError({
-      message: error.message || 'An unexpected error occurred.'
-    });
+    const message = error.message || 'An unexpected error occurred.';
+    const err = new Error(message);
+    err.statusCode = error.statusCode || statusCodes.SERVER_ERROR;
+    throw err;
   }
 }
 

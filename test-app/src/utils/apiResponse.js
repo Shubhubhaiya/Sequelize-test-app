@@ -1,93 +1,56 @@
-const { response } = require('express');
 const responseMessages = require('../config/responseMessages');
-const statusCodes = require('../config/statusCodes');
 
 class ApiResponse {
   constructor() {
     this.data = null;
     this.error = null;
-    this.status = null;
   }
 
+  // Formats a success response
   static success(data = [], pagination = null, message = null) {
     const response = new ApiResponse();
     response.data = data;
-    response.status = statusCodes.SUCCESS;
 
-    if (pagination !== null) {
-      response.pagination = pagination;
-    }
-    if (message != null) {
-      response.message = message;
-    }
+    if (pagination) response.pagination = pagination;
+    if (message) response.message = message;
 
     return response;
   }
 
-  static error(message, statusCode = 500, errorDetails = {}) {
+  // Formats an error response
+  static error(message, errorDetails = {}) {
     const response = new ApiResponse();
-    response.error = {
-      message,
-      ...errorDetails
-    };
-    response.status = statusCode;
+    response.error = { message, ...errorDetails };
     return response;
   }
 
+  // Helper methods for common errors using responseMessages
   static badRequest(errorDetails = {}) {
-    return ApiResponse.error(
-      responseMessages.BAD_REQUEST,
-      statusCodes.BAD_REQUEST,
-      errorDetails
-    );
+    return ApiResponse.error(responseMessages.BAD_REQUEST, errorDetails);
   }
 
   static dataNotFound(errorDetails = {}) {
-    return ApiResponse.error(
-      responseMessages.DATA_NOT_FOUND,
-      statusCodes.NOT_FOUND,
-      errorDetails
-    );
+    return ApiResponse.error(responseMessages.DATA_NOT_FOUND, errorDetails);
   }
 
   static unauthorized(errorDetails = {}) {
-    return ApiResponse.error(
-      responseMessages.UNAUTHORIZED,
-      statusCodes.UNAUTHORIZED,
-      errorDetails
-    );
+    return ApiResponse.error(responseMessages.UNAUTHORIZED, errorDetails);
   }
 
   static forbidden(errorDetails = {}) {
-    return ApiResponse.error(
-      responseMessages.FORBIDDEN,
-      statusCodes.FORBIDDEN,
-      errorDetails
-    );
+    return ApiResponse.error(responseMessages.FORBIDDEN, errorDetails);
   }
 
   static serverError(errorDetails = {}) {
-    return ApiResponse.error(
-      responseMessages.SERVER_ERROR,
-      statusCodes.SERVER_ERROR,
-      errorDetails
-    );
+    return ApiResponse.error(responseMessages.SERVER_ERROR, errorDetails);
   }
 
   static serverUnavailable(errorDetails = {}) {
-    return ApiResponse.error(
-      responseMessages.SERVER_UNAVAILABLE,
-      statusCodes.SERVICE_UNAVAILABLE,
-      errorDetails
-    );
+    return ApiResponse.error(responseMessages.SERVER_UNAVAILABLE, errorDetails);
   }
 
   static conflict(errorDetails = {}) {
-    return ApiResponse.error(
-      responseMessages.CONFLICT,
-      statusCodes.CONFLICT,
-      errorDetails
-    );
+    return ApiResponse.error(responseMessages.CONFLICT, errorDetails);
   }
 }
 
