@@ -16,28 +16,7 @@ const validateCreateDealSchema = require('../middleware/validateDeal');
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 example: "New Deal"
- *                 description: The name of the deal.
- *               stage:
- *                 type: integer
- *                 example: 1
- *                 description: The ID of the stage.
- *               therapeuticArea:
- *                 type: integer
- *                 example: 7
- *                 description: The ID of the therapeutic area.
- *               userId:
- *                 type: integer
- *                 example: 1
- *                 description: The ID of the user creating the deal.
- *               dealLead:
- *                 type: integer
- *                 example: 2
- *                 description: (Optional) The ID of the deal lead.
+ *             $ref: '#/components/schemas/CreateDealRequest'
  *     responses:
  *       200:
  *         description: Deal created successfully
@@ -93,8 +72,37 @@ const validateCreateDealSchema = require('../middleware/validateDeal');
  *                 status:
  *                   type: integer
  *                   example: 500
+ *
  * components:
  *   schemas:
+ *     CreateDealRequest:
+ *       type: object
+ *       required:
+ *         - name
+ *         - stage
+ *         - therapeuticArea
+ *         - userId
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: The name of the deal.
+ *           example: "New Deal"
+ *         stage:
+ *           type: integer
+ *           description: The ID of the stage.
+ *           example: 1
+ *         therapeuticArea:
+ *           type: integer
+ *           description: The ID of the therapeutic area.
+ *           example: 7
+ *         userId:
+ *           type: integer
+ *           description: The ID of the user creating the deal.
+ *           example: 1
+ *         dealLead:
+ *           type: integer
+ *           description: (Optional) The ID of the deal lead.
+ *           example: 2
  *     Deal:
  *       type: object
  *       properties:
@@ -151,28 +159,7 @@ router.post('/create', validateCreateDealSchema, dealController.createDeal);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 example: "Updated Deal Name"
- *                 description: The name of the deal.
- *               stage:
- *                 type: integer
- *                 example: 1
- *                 description: The ID of the stage.
- *               therapeuticArea:
- *                 type: integer
- *                 example: 7
- *                 description: The ID of the therapeutic area.
- *               userId:
- *                 type: integer
- *                 example: 1
- *                 description: The ID of the user updating the deal.
- *               dealLead:
- *                 type: integer
- *                 example: 2
- *                 description: (Optional) The ID of the deal lead.
+ *             $ref: '#/components/schemas/UpdateDealRequest'
  *     responses:
  *       200:
  *         description: Deal updated successfully
@@ -246,6 +233,37 @@ router.post('/create', validateCreateDealSchema, dealController.createDeal);
  *                 status:
  *                   type: integer
  *                   example: 500
+ *
+ * components:
+ *   schemas:
+ *     UpdateDealRequest:
+ *       type: object
+ *       required:
+ *         - name
+ *         - stage
+ *         - therapeuticArea
+ *         - userId
+ *       properties:
+ *         name:
+ *           type: string
+ *           description: The name of the deal.
+ *           example: "Updated Deal Name"
+ *         stage:
+ *           type: integer
+ *           description: The ID of the stage.
+ *           example: 1
+ *         therapeuticArea:
+ *           type: integer
+ *           description: The ID of the therapeutic area.
+ *           example: 7
+ *         userId:
+ *           type: integer
+ *           description: The ID of the user updating the deal.
+ *           example: 1
+ *         dealLead:
+ *           type: integer
+ *           description: (Optional) The ID of the deal lead.
+ *           example: 2
  */
 
 router.put('/:id', validateCreateDealSchema, dealController.updateDeal);

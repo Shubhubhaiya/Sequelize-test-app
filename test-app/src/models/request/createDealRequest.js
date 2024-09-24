@@ -1,6 +1,6 @@
 const joi = require('joi');
 
-const createDealSchema = joi.object({
+const createDealRequest = joi.object({
   name: joi.string().trim().required().messages({
     'any.required': 'Deal name is required',
     'string.base': 'Deal name must be a string'
@@ -31,5 +31,5 @@ const createDealSchema = joi.object({
 });
 
 module.exports = {
-  createDealSchema
+  createDealRequest
 };
