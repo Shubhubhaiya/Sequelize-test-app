@@ -367,66 +367,16 @@ router.delete('/:id', dealController.deleteDeal);
  *         required: true
  *         schema:
  *           type: integer
- *         description: The ID of the deal to retrieve
+ *         description: The ID of the deal to retrieve.
  *     responses:
  *       200:
- *         description: Successful response with deal details
+ *         description: Successful response with deal details.
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 data:
- *                   type: object
- *                   properties:
- *                     name:
- *                       type: string
- *                       example: "test deal2"
- *                     stage:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: integer
- *                           example: 1
- *                         name:
- *                           type: string
- *                           example: "Triage"
- *                     therapeuticArea:
- *                       type: object
- *                       properties:
- *                         id:
- *                           type: integer
- *                           example: 1
- *                         name:
- *                           type: string
- *                           example: "CRM"
- *                     dealLeads:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           email:
- *                             type: string
- *                             example: "deal2.lead@example.com"
- *                           novartis521ID:
- *                             type: string
- *                             example: "deal@novartis.neta"
- *                           firstName:
- *                             type: string
- *                             example: "DealLeadFirstname2"
- *                           lastName:
- *                             type: string
- *                             example: "DalLeadLastName2"
- *                           title:
- *                             type: string
- *                             example: "Deal Leader"
- *                 error:
- *                   type: null
- *                 status:
- *                   type: integer
- *                   example: 200
+ *               $ref: '#/components/schemas/DealDetailResponse'
  *       404:
- *         description: Deal not found
+ *         description: Deal not found.
  *         content:
  *           application/json:
  *             schema:
@@ -443,6 +393,62 @@ router.delete('/:id', dealController.deleteDeal);
  *                 status:
  *                   type: integer
  *                   example: 404
+ *
+ * components:
+ *   schemas:
+ *     DealDetailResponse:
+ *       type: object
+ *       properties:
+ *         data:
+ *           type: object
+ *           properties:
+ *             name:
+ *               type: string
+ *               example: "test deal2"
+ *             stage:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   example: "Triage"
+ *             therapeuticArea:
+ *               type: object
+ *               properties:
+ *                 id:
+ *                   type: integer
+ *                   example: 1
+ *                 name:
+ *                   type: string
+ *                   example: "CRM"
+ *             dealLeads:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   email:
+ *                     type: string
+ *                     example: "deal2.lead@example.com"
+ *                   novartis521ID:
+ *                     type: string
+ *                     example: "deal@novartis.neta"
+ *                   firstName:
+ *                     type: string
+ *                     example: "DealLeadFirstname2"
+ *                   lastName:
+ *                     type: string
+ *                     example: "DalLeadLastName2"
+ *                   title:
+ *                     type: string
+ *                     example: "Deal Leader"
+ *         error:
+ *           type: null
+ *           example: null
+ *         status:
+ *           type: integer
+ *           example: 200
  */
 
 router.get('/:id', dealController.getDealDetail);

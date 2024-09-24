@@ -13,6 +13,7 @@ const apiResponse = require('../utils/apiResponse');
 const sequelizeErrorHandler = require('../utils/sequelizeErrorHandler');
 const roles = require('../config/roles');
 const PaginationHelper = require('../utils/paginationHelper');
+const DealDetailResponse = require('../models/response/dealDetailResponse');
 
 class DealService extends baseService {
   constructor() {
@@ -197,7 +198,8 @@ class DealService extends baseService {
           name,
           currentStage: stage,
           therapeuticArea,
-          modifiedBy: userId
+          modifiedBy: userId,
+          modifiedAt: new Date()
         },
         {
           where: { id: dealId },
@@ -390,27 +392,10 @@ class DealService extends baseService {
         return apiResponse.dataNotFound({ message: 'Deal not found' });
       }
 
-      // Constructing the response format as per your requirement
-      const response = {
-        name: deal.name,
-        stage: {
-          id: deal.stage.id,
-          name: deal.stage.name
-        },
-        therapeuticArea: {
-          id: deal.therapeuticAreaAssociation.id,
-          name: deal.therapeuticAreaAssociation.name
-        },
-        dealLeads: deal.leadUsers.map((leadUser) => ({
-          email: leadUser.email,
-          novartis521ID: leadUser.novartis521ID,
-          firstName: leadUser.firstName,
-          lastName: leadUser.lastName,
-          title: leadUser.title
-        }))
-      };
+      // constructing deal response
+      const dealDetailResponse = new DealDetailResponse(deal);
 
-      return apiResponse.success(response);
+      return apiResponse.success(dealDetailResponse);
     } catch (error) {
       return apiResponse.serverError({ message: error.message });
     }
