@@ -1,0 +1,598 @@
+openapi: 3.0.0
+info:
+  title: S&G Mercator Resource APIs
+  version: 1.0.0
+  description: API documentation for S&G Mercator resource management.
+servers:
+  - url: 'http://localhost:3000/api'
+    description: Development server
+
+paths:
+  /line-functions:
+    get:
+      summary: Retrieve a list of all line functions
+      description: Retrieve a paginated list of all line functions. Supports pagination through query parameters.
+      tags:
+        - Line Functions
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            example: 1
+          description: The page number to retrieve.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 10
+          description: The number of records per page.
+      responses:
+        200:
+          description: A list of line functions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LineFunctionsResponse'
+        400:
+          description: Invalid request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /stages:
+    get:
+      summary: Retrieve a list of all stages
+      description: Retrieve a paginated list of all stages. Supports pagination through query parameters.
+      tags:
+        - Stages
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            example: 1
+          description: The page number to retrieve.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 10
+          description: The number of records per page.
+      responses:
+        200:
+          description: A list of stages.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StagesResponse'
+        400:
+          description: Invalid request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /therapeutic-areas:
+    get:
+      summary: Retrieve a list of all therapeutic areas
+      description: Retrieve a paginated list of all therapeutic areas. Supports filtering by userId to get associated therapeutic areas.
+      tags:
+        - Therapeutic Areas
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            example: 1
+          description: The page number to retrieve.
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            example: 10
+          description: The number of records per page.
+        - in: query
+          name: userId
+          schema:
+            type: integer
+            example: 2
+          description: ID of the user to filter associated therapeutic areas.
+      responses:
+        200:
+          description: A list of therapeutic areas.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TherapeuticAreasResponse'
+        400:
+          description: Invalid request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /therapeutic-areas/assign:
+    post:
+      summary: Assign therapeutic areas to a deal lead
+      description: Assign multiple therapeutic areas to a deal lead. Only a system admin can perform this operation.
+      tags:
+        - Therapeutic Areas
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssignTherapeuticAreaRequest'
+      responses:
+        200:
+          description: Therapeutic areas assigned successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Therapeutic Areas assigned successfully.'
+        400:
+          description: Invalid request parameters.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'All fields are required and therapeuticAreaIds should be a non-empty array.'
+                  error:
+                    type: object
+                    example: {}
+        404:
+          description: Not found.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'TherapeuticArea with ID 4 not found.'
+                  error:
+                    type: object
+                    example: {}
+        500:
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Unexpected error occurred.'
+                  error:
+                    type: object
+                    example: {}
+
+  /deals/create:
+    post:
+      summary: Create a new deal
+      description: Create a new deal with optional Deal Lead association. If Deal Lead is provided, it will be validated against the Therapeutic Area.
+      tags:
+        - Deals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDealRequest'
+      responses:
+        200:
+          description: Deal created successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Deal created successfully.'
+        400:
+          description: Bad Request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deals/{dealId}:
+    get:
+      summary: Get details of a specific deal
+      description: Fetch detailed information of a deal, including stage, therapeutic area, and deal leads.
+      tags:
+        - Deals
+      parameters:
+        - in: path
+          name: dealId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the deal to retrieve.
+      responses:
+        200:
+          description: Successful response with deal details.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealDetailResponse'
+        404:
+          description: Deal not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /deals/{id}:
+    put:
+      summary: Update an existing deal
+      description: Updates a deal. The deal `id` is not editable, but all other fields are.
+      tags:
+        - Deals
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: The ID of the deal to update.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDealRequest'
+      responses:
+        200:
+          description: Deal updated successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Deal updated successfully.'
+        400:
+          description: Bad Request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Deal Not Found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a deal
+      description: Deletes a deal by its ID. Only the deal lead who created the deal or a system admin can delete the deal.
+      tags:
+        - Deals
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: The ID of the deal to be deleted.
+      responses:
+        200:
+          description: Deal successfully deleted.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Deal successfully deleted.'
+        403:
+          description: User is not authorized to delete the deal.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Deal not found or already deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    LineFunction:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: The unique identifier of the line function.
+        name:
+          type: string
+          example: 'Alliance Management'
+          description: The name of the line function.
+    Pagination:
+      type: object
+      properties:
+        totalRecords:
+          type: integer
+          example: 50
+          description: Total number of records available.
+        currentPage:
+          type: integer
+          example: 1
+          description: Current page number.
+        totalPages:
+          type: integer
+          example: 5
+          description: Total number of pages.
+        pageSize:
+          type: integer
+          example: 10
+          description: Number of records per page.
+    LineFunctionsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineFunction'
+        error:
+          type: object
+          nullable: true
+          example: null
+          description: Error object if an error occurred; otherwise, null.
+        status:
+          type: integer
+          example: 200
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    StagesResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Stage'
+        error:
+          type: object
+          nullable: true
+          example: null
+          description: Error object if an error occurred; otherwise, null.
+        status:
+          type: integer
+          example: 200
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    Stage:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: The unique identifier of the stage.
+        name:
+          type: string
+          example: 'Triage'
+          description: The name of the stage.
+    TherapeuticAreasResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TherapeuticArea'
+        error:
+          type: object
+          nullable: true
+          example: null
+          description: Error object if an error occurred; otherwise, null.
+        status:
+          type: integer
+          example: 200
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+    TherapeuticArea:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: Unique identifier of the therapeutic area.
+        name:
+          type: string
+          example: 'CRM'
+          description: Name of the therapeutic area.
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Oops! Invalid request, please recheck information!'
+          description: Error message detailing what went wrong.
+        error:
+          type: object
+          example: {}
+          description: Additional error details.
+    AssignTherapeuticAreaRequest:
+      type: object
+      required:
+        - adminUserId
+        - dealLeadId
+        - therapeuticAreaIds
+      properties:
+        adminUserId:
+          type: integer
+          description: ID of the admin user performing the assignment.
+          example: 1
+        dealLeadId:
+          type: integer
+          description: ID of the deal lead to assign the therapeutic areas.
+          example: 2
+        therapeuticAreaIds:
+          type: array
+          description: List of therapeutic area IDs to be assigned.
+          items:
+            type: integer
+          example: [1, 2, 3]
+    CreateDealRequest:
+      type: object
+      required:
+        - name
+        - stage
+        - therapeuticArea
+        - userId
+      properties:
+        name:
+          type: string
+          description: The name of the deal.
+          example: 'New Deal'
+        stage:
+          type: integer
+          description: The ID of the stage.
+          example: 1
+        therapeuticArea:
+          type: integer
+          description: The ID of the therapeutic area.
+          example: 7
+        userId:
+          type: integer
+          description: The ID of the user creating the deal.
+          example: 1
+        dealLead:
+          type: integer
+          description: (Optional) The ID of the deal lead.
+          example: 2
+    UpdateDealRequest:
+      type: object
+      required:
+        - name
+        - stage
+        - therapeuticArea
+        - userId
+      properties:
+        name:
+          type: string
+          description: The name of the deal to update.
+          example: 'Updated Deal Name'
+        stage:
+          type: integer
+          description: The ID of the stage.
+          example: 1
+        therapeuticArea:
+          type: integer
+          description: The ID of the therapeutic area.
+          example: 7
+        userId:
+          type: integer
+          description: The ID of the user updating the deal.
+          example: 1
+        dealLead:
+          type: integer
+          description: (Optional) The ID of the deal lead.
+          example: 2
+    DealDetailResponse:
+      type: object
+      properties:
+        data:
+          type: object
+          properties:
+            name:
+              type: string
+              example: 'test deal2'
+            stage:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                name:
+                  type: string
+                  example: 'Triage'
+            therapeuticArea:
+              type: object
+              properties:
+                id:
+                  type: integer
+                  example: 1
+                name:
+                  type: string
+                  example: 'CRM'
+            dealLeads:
+              type: array
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                    example: 'deal2.lead@example.com'
+                  novartis521ID:
+                    type: string
+                    example: 'deal@novartis.neta'
+                  firstName:
+                    type: string
+                    example: 'DealLeadFirstname2'
+                  lastName:
+                    type: string
+                    example: 'DealLeadLastName2'
+                  title:
+                    type: string
+                    example: 'Deal Leader'
+        error:
+          type: object
+          nullable: true
+          example: null
+          description: Error object if an error occurred; otherwise, null.
+        status:
+          type: integer
+          example: 200

@@ -1,30 +1,10 @@
-const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const yaml = require('yamljs');
 const path = require('path');
 
-const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'S&G Mercator Resource Apis',
-      version: '1.0.0',
-      description: 'API documentation for resource api'
-    },
-    servers: [
-      {
-        url: 'http://localhost:3000/api',
-        description: 'Development server'
-      }
-    ]
-  },
-  apis: [
-    path.join(__dirname, '../routes/*.js'),
-    path.join(__dirname, '../controllers/*.js')
-  ]
-};
-
-const specs = swaggerJsdoc(options);
+// Load YAML swagger file
+const swaggerDocument = yaml.load(path.join(__dirname, 'swagger.yaml'));
 
 module.exports = (app) => {
-  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs));
+  app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 };
