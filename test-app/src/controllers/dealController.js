@@ -1,8 +1,14 @@
+const statusCodes = require('../config/statusCodes');
 const dealService = require('../services/dealService');
+const apiResponse = require('../utils/apiResponse');
 
-const createDeal = async (req, res) => {
-  const result = await dealService.createDeal(req.body);
-  return res.status(result.status).send(result);
+const createDeal = async (req, res, next) => {
+  try {
+    const result = await dealService.createDeal(req.body);
+    return res.status(statusCodes.CREATED).json(apiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
 };
 
 const updateDeal = async (req, res) => {

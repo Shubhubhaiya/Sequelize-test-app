@@ -37,8 +37,11 @@ class PaginationHelper {
     // Execute the query using Sequelize's findAndCountAll method
     const { count, rows } = await model.findAndCountAll(options);
 
+    let pagination = null;
     // Create pagination metadata
-    const pagination = this.createPaginationObject(count, page, limit);
+    if (count > 0) {
+      pagination = this.createPaginationObject(count, page, limit);
+    }
 
     return { data: rows, pagination };
   }

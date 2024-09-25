@@ -9,7 +9,10 @@ const {
 const baseService = require('./baseService');
 const apiResponse = require('../utils/apiResponse');
 const roles = require('../config/roles');
-const sequelizeErrorHandler = require('../utils/sequelizeErrorHandler');
+const sequelizeErrorHandler = require('../utils/errorHandler');
+const statusCodes = require('../config/statusCodes');
+const CustomError = require('../utils/customError');
+const responseMessages = require('../config/responseMessages');
 
 class TherapeuticAreaService extends baseService {
   constructor() {
@@ -19,12 +22,16 @@ class TherapeuticAreaService extends baseService {
   async getAllTherapeuticAreas(query) {
     try {
       const userId = query.userId;
+
+      // Validate userId
       if (!userId) {
-        return apiResponse.badRequest({ message: 'Please provide userId' });
+        throw new CustomError('Please provide userId', statusCodes.BAD_REQUEST);
       }
+
+      // Fetch the user
       const user = await User.findByPk(userId);
       if (!user) {
-        return apiResponse.dataNotFound({ message: 'User not found.' });
+        throw new CustomError('User not found.', statusCodes.NOT_FOUND);
       }
 
       const customOptions = {};
@@ -43,80 +50,112 @@ class TherapeuticAreaService extends baseService {
         ];
       }
 
+      // Fetch data using findAndCountAll
       const { data, pagination } = await this.findAndCountAll(
         query,
         customOptions
       );
 
-      if (data.length === 0) {
-        return apiResponse.success();
-      }
-
-      return apiResponse.success(data, pagination);
+      return { data, pagination };
     } catch (error) {
-      return sequelizeErrorHandler.handle(error);
+      sequelizeErrorHandler.handle(error);
     }
   }
 
   async assignTherapeuticAreas(adminUserId, dealLeadId, therapeuticAreaIds) {
-    const transaction = await sequelize.transaction();
-
+    let transaction;
     try {
       // Fetch the admin user and validate their role
       const adminUser = await User.findByPk(adminUserId);
-      if (!adminUser || adminUser.roleId !== roles.SYSTEM_ADMIN) {
-        return apiResponse.unauthorized(
+      if (!adminUser) {
+        const error = new Error('Admin user not found.');
+        error.statusCode = statusCodes.NOT_FOUND;
+        throw error;
+      }
+      if (adminUser.roleId !== roles.SYSTEM_ADMIN) {
+        const error = new Error(
           'Only SystemAdmins can assign TherapeuticAreas.'
         );
+        error.statusCode = statusCodes.UNAUTHORIZED;
+        throw error;
       }
 
       // Fetch the deal lead user and validate their role
       const dealLeadUser = await User.findByPk(dealLeadId);
-      if (!dealLeadUser || dealLeadUser.roleId !== roles.DEAL_LEAD) {
-        return apiResponse.badRequest({
-          message: 'TherapeuticArea can only be assigned to Deal Leads.'
-        });
+      if (!dealLeadUser) {
+        const error = new Error('Deal lead user not found.');
+        error.statusCode = statusCodes.NOT_FOUND;
+        throw error;
+      }
+      if (dealLeadUser.roleId !== roles.DEAL_LEAD) {
+        const error = new Error(
+          'TherapeuticAreas can only be assigned to Deal Leads.'
+        );
+        error.statusCode = statusCodes.BAD_REQUEST;
+        throw error;
       }
 
-      // Loop through the therapeutic area IDs and handle the assignments
-      for (const therapeuticAreaId of therapeuticAreaIds) {
-        const therapeuticArea = await TherapeuticArea.findByPk(
-          therapeuticAreaId,
+      // Fetch all therapeutic areas in one query
+      const therapeuticAreas = await TherapeuticArea.findAll({
+        where: { id: therapeuticAreaIds }
+      });
+
+      // Check if any therapeutic areas were not found
+      const foundIds = therapeuticAreas.map((ta) => ta.id);
+      const notFoundIds = therapeuticAreaIds.filter(
+        (id) => !foundIds.includes(id)
+      );
+
+      if (notFoundIds.length > 0) {
+        const error = new Error(
+          `TherapeuticArea(s) with ID(s) ${notFoundIds.join(', ')} not found.`
+        );
+        error.statusCode = statusCodes.NOT_FOUND;
+        throw error;
+      }
+
+      // Start the transaction
+      transaction = await sequelize.transaction();
+
+      // Assign therapeutic areas
+      for (const therapeuticArea of therapeuticAreas) {
+        await UserTherapeuticAreas.create(
+          { userId: dealLeadId, therapeuticAreaId: therapeuticArea.id },
           { transaction }
         );
-
-        if (!therapeuticArea) {
-          await transaction.rollback();
-          return apiResponse.dataNotFound({
-            message: `TherapeuticArea with ID ${therapeuticAreaId} not found.`
-          });
-        }
-
-        try {
-          await UserTherapeuticAreas.create(
-            { userId: dealLeadId, therapeuticAreaId },
-            { transaction }
-          );
-        } catch (error) {
-          if (error instanceof Sequelize.UniqueConstraintError) {
-            // Handle the composite key violation by including the therapeutic area name in the error
-            return apiResponse.conflict({
-              message: `Deal lead is already associated with the therapeutic area "${therapeuticArea.name}".`
-            });
-          }
-          throw error;
-        }
       }
 
-      // Commit the transaction after all operations are successful
+      // Commit the transaction
       await transaction.commit();
 
-      return apiResponse.success({
-        message: 'Therapeutic Areas assigned successfully.'
-      });
+      // Return success message
+      return { message: 'Therapeutic Areas assigned successfully.' };
     } catch (error) {
-      await transaction.rollback();
-      return sequelizeErrorHandler.handle(error);
+      // Rollback the transaction if it exists
+      if (transaction) {
+        await transaction.rollback();
+      }
+
+      // Handle UniqueConstraintError to include therapeutic area name
+      if (error instanceof Sequelize.UniqueConstraintError) {
+        const fieldValues = error.fields;
+        const therapeuticAreaId = fieldValues.therapeuticAreaId;
+        const therapeuticArea = therapeuticAreas.find(
+          (ta) => ta.id === Number(therapeuticAreaId)
+        );
+        const uniqueError = new Error(
+          `Deal lead is already associated with the therapeutic area ${therapeuticArea.name}.`
+        );
+        uniqueError.statusCode = statusCodes.CONFLICT;
+        throw uniqueError;
+      }
+
+      // Use the error handler to process Sequelize errors
+      if (!error.statusCode) {
+        sequelizeErrorHandler.handle(error);
+      }
+
+      throw error;
     }
   }
 }

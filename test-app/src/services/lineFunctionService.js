@@ -1,6 +1,6 @@
 const { LineFunction } = require('../database/models');
 const baseService = require('./baseService');
-const sequelizeErrorHandler = require('../utils/sequelizeErrorHandler');
+const errorHandler = require('../utils/errorHandler');
 
 class LineFunctionService extends baseService {
   constructor() {
@@ -12,7 +12,7 @@ class LineFunctionService extends baseService {
       const { data, pagination } = await this.findAndCountAll(query);
       return { data, pagination };
     } catch (error) {
-      sequelizeErrorHandler.handle(error);
+      errorHandler.handle(error);
     }
   }
 }

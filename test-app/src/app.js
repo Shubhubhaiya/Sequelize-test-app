@@ -7,6 +7,7 @@ const routes = require('./routes');
 const connectToDatabase = require('./database/connection');
 const apiResponse = require('./utils/apiResponse');
 const setupSwagger = require('./config/swagger');
+const errorHandlerMiddleware = require('./middleware/errorHandler');
 
 const corsOptions = {
   origin: '*'
@@ -33,16 +34,7 @@ app.use(
 app.use('/api', routes);
 
 // Error handling middleware
-app.use((err, req, res, next) => {
-  if (err) {
-    const errorResponse = apiResponse.serverError({
-      message: 'Something went wrong - Please try again.',
-      error: err
-    });
-    return res.status(500).send(errorResponse);
-  }
-  next();
-});
+app.use(errorHandlerMiddleware);
 
 // Setup Swagger after the routes are defined
 setupSwagger(app);

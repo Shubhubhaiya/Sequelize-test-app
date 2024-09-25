@@ -1,57 +1,54 @@
 const responseMessages = require('../config/responseMessages');
 
 class ApiResponse {
-  constructor() {
-    this.data = null;
-    this.error = null;
-  }
-
   // Formats a success response
-  static success(data = [], pagination = null, message = null) {
-    const response = new ApiResponse();
-    response.data = data;
+  static success(data = null, pagination = null, message = null) {
+    const response = {};
 
-    if (pagination) response.pagination = pagination;
+    if (data) {
+      response.data = data;
+    }
+
+    if (pagination) {
+      Object.assign(response, pagination);
+    }
+
     if (message) response.message = message;
 
     return response;
   }
 
   // Formats an error response
-  static error(message, errorDetails = {}) {
-    const response = new ApiResponse();
-    response.error = { message, ...errorDetails };
-    return response;
+  static error(message = 'An error occurred.') {
+    return message;
   }
 
   // Helper methods for common errors using responseMessages
-  static badRequest(errorDetails = {}) {
-    return ApiResponse.error(responseMessages.BAD_REQUEST, errorDetails);
+  static badRequest(message = 'Bad Request') {
+    return ApiResponse.error(message);
   }
 
-  static dataNotFound(errorDetails = {}) {
-    return ApiResponse.error(responseMessages.DATA_NOT_FOUND, errorDetails);
+  static unauthorized(message = 'Unauthorized') {
+    return ApiResponse.error(message);
   }
 
-  static unauthorized(errorDetails = {}) {
-    return ApiResponse.error(responseMessages.UNAUTHORIZED, errorDetails);
+  static forbidden(message = 'Forbidden') {
+    return ApiResponse.error(message);
   }
 
-  static forbidden(errorDetails = {}) {
-    return ApiResponse.error(responseMessages.FORBIDDEN, errorDetails);
+  static notFound(message = 'Not Found') {
+    return ApiResponse.error(message);
   }
 
-  static serverError(errorDetails = {}) {
-    return ApiResponse.error(responseMessages.SERVER_ERROR, errorDetails);
+  static conflict(message = 'Conflict') {
+    return ApiResponse.error(message);
   }
 
-  static serverUnavailable(errorDetails = {}) {
-    return ApiResponse.error(responseMessages.SERVER_UNAVAILABLE, errorDetails);
+  static internalError(message = 'Internal Server Error') {
+    return ApiResponse.error(message);
   }
 
-  static conflict(errorDetails = {}) {
-    return ApiResponse.error(responseMessages.CONFLICT, errorDetails);
-  }
+  // Add other helper methods as needed...
 }
 
 module.exports = ApiResponse;

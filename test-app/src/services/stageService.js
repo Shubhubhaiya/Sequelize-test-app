@@ -1,7 +1,6 @@
 const { Stage } = require('../database/models');
 const baseService = require('./baseService');
-const apiResponse = require('../utils/apiResponse');
-const sequelizeErrorHandler = require('../utils/sequelizeErrorHandler');
+const errorHandler = require('../utils/errorHandler');
 
 class StageService extends baseService {
   constructor() {
@@ -11,14 +10,9 @@ class StageService extends baseService {
   async getAllStages(query) {
     try {
       const { data, pagination } = await this.findAndCountAll(query);
-
-      if (data.length === 0) {
-        return apiResponse.success();
-      }
-
-      return apiResponse.success(data, pagination);
+      return { data, pagination };
     } catch (error) {
-      return sequelizeErrorHandler.handle(error);
+      errorHandler.handle(error);
     }
   }
 }
