@@ -10,6 +10,10 @@ const CustomError = require('./customError');
 
 class ErrorHandler {
   static handle(error) {
+    if (error instanceof CustomError) {
+      return this.handleGenericError(error);
+    }
+
     if (error instanceof UniqueConstraintError) {
       return this.handleUniqueConstraintError(error);
     }
@@ -31,7 +35,6 @@ class ErrorHandler {
       return this.handleSequelizeError(error);
     }
 
-    // Generic error for other cases
     return this.handleGenericError(error);
   }
 
@@ -58,7 +61,7 @@ class ErrorHandler {
   static handleDatabaseError(error) {
     const message = 'A database error occurred.';
     // const detail = 'Please try again later.';
-    throw new CustomError(message, statusCodes.INTERNAL_SERVER_ERROR);
+    throw new CustomError(message, statusCodes.SERVER_ERROR);
   }
 
   static handleSequelizeError(error) {
@@ -72,7 +75,7 @@ class ErrorHandler {
     // const detail = 'Please contact support.';
     throw new CustomError(
       message,
-      error.statusCode || statusCodes.INTERNAL_SERVER_ERROR
+      error.statusCode || statusCodes.SERVER_ERROR
     );
   }
 }

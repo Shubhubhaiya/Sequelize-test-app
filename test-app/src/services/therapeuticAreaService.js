@@ -9,10 +9,10 @@ const {
 const baseService = require('./baseService');
 const apiResponse = require('../utils/apiResponse');
 const roles = require('../config/roles');
-const sequelizeErrorHandler = require('../utils/errorHandler');
 const statusCodes = require('../config/statusCodes');
 const CustomError = require('../utils/customError');
 const responseMessages = require('../config/responseMessages');
+const errorHandler = require('../utils/errorHandler');
 
 class TherapeuticAreaService extends baseService {
   constructor() {
@@ -58,7 +58,7 @@ class TherapeuticAreaService extends baseService {
 
       return { data, pagination };
     } catch (error) {
-      sequelizeErrorHandler.handle(error);
+      errorHandler.handle(error);
     }
   }
 

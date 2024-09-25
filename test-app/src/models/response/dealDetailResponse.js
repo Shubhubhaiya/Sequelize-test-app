@@ -1,5 +1,6 @@
 class DealDetailResponse {
   constructor(deal) {
+    this.id = deal.id;
     this.name = deal.name;
     this.stage = {
       id: deal.stage.id,

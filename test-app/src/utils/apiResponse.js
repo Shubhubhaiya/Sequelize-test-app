@@ -5,15 +5,20 @@ class ApiResponse {
   static success(data = null, pagination = null, message = null) {
     const response = {};
 
-    if (data) {
-      response.data = data;
-    }
-
-    if (pagination) {
-      Object.assign(response, pagination);
-    }
-
     if (message) response.message = message;
+
+    if (data) {
+      if (Array.isArray(data)) {
+        response.data = data;
+        if (pagination) {
+          Object.assign(response, pagination);
+        }
+      } else if (typeof data === 'object') {
+        Object.assign(response, data);
+      } else {
+        response.data = data;
+      }
+    }
 
     return response;
   }

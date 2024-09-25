@@ -24,7 +24,8 @@ const createDealRequest = joi.object({
     'number.integer': 'User ID must be an integer'
   }),
 
-  dealLead: joi.number().integer().strict().optional().allow(null).messages({
+  dealLead: joi.number().integer().strict().required().messages({
+    'any.required': 'Deal lead is required',
     'number.base': 'Deal Lead ID must be a number',
     'number.integer': 'Deal Lead ID must be an integer'
   })
