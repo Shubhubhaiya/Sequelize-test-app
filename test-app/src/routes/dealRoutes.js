@@ -4,6 +4,8 @@ const dealController = require('../controllers/dealController');
 const validateCreateDealSchema = require('../middleware/validateDeal');
 const validateRouteId = require('../middleware/validateRouteId');
 const validateDeleteDealRequestSchema = require('../middleware/validateDeleteDealRequest');
+const validatePagination = require('../middleware/validatePagination');
+const validateDealListSchema = require('../middleware/validateDealListRequest');
 
 // create deal
 
@@ -32,6 +34,11 @@ router.get('/:id', validateRouteId, dealController.getDealDetail);
 
 // deal list
 
-router.post('/list', dealController.getDealsList);
+router.post(
+  '/list',
+  validatePagination,
+  validateDealListSchema,
+  dealController.getDealsList
+);
 
 module.exports = router;

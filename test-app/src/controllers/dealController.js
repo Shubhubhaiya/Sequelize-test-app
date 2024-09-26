@@ -43,9 +43,18 @@ const getDealDetail = async (req, res, next) => {
   }
 };
 
-const getDealsList = async (req, res) => {
-  const result = await dealService.getDealsList(req.body);
-  return res.status(result.status).send(result);
+const getDealsList = async (req, res, next) => {
+  try {
+    const { deals, pagination } = await dealService.getDealsList(
+      req.query,
+      req.body
+    );
+
+    const successResponse = apiResponse.success(deals, pagination);
+    return res.status(statusCodes.SUCCESS).send(successResponse);
+  } catch (error) {
+    next(error);
+  }
 };
 
 module.exports = {

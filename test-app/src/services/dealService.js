@@ -331,164 +331,169 @@ class DealService extends baseService {
     }
   }
 
-  // async getDealsList(query) {
-  //   try {
-  //     const { filters, page = 1, limit = 10 } = query;
-  //     const offset = limit ? (page - 1) * limit : undefined;
+  async getDealsList(query, body) {
+    try {
+      const { filters } = body;
 
-  //     // Build filter criteria
-  //     const where = { isDeleted: false };
-  //     const include = [
-  //       {
-  //         model: Stage,
-  //         as: 'stage',
-  //         attributes: ['id', 'name']
-  //       },
-  //       {
-  //         model: TherapeuticArea,
-  //         as: 'therapeuticAreaAssociation',
-  //         attributes: ['id', 'name']
-  //       },
-  //       {
-  //         model: User,
-  //         as: 'leadUsers',
-  //         attributes: ['id', 'firstName', 'lastName'],
-  //         through: {
-  //           attributes: [],
-  //           where: { isDeleted: false }
-  //         }
-  //       }
-  //     ];
+      // Build filter criteria
+      const where = { isDeleted: false };
+      const include = [
+        {
+          model: Stage,
+          as: 'stage',
+          attributes: ['id', 'name']
+        },
+        {
+          model: TherapeuticArea,
+          as: 'therapeuticAreaAssociation',
+          attributes: ['id', 'name']
+        },
+        {
+          model: User,
+          as: 'leadUsers',
+          attributes: ['id', 'firstName', 'lastName'],
+          through: {
+            attributes: [],
+            where: { isDeleted: false }
+          }
+        }
+      ];
 
-  //     if (filters) {
-  //       // Filter by deal name
-  //       if (filters.name) {
-  //         where.name = { [Sequelize.Op.iLike]: `%${filters.name}%` };
-  //       }
+      if (filters) {
+        // Filter by deal name
+        if (filters.name) {
+          where.name = { [Sequelize.Op.iLike]: `%${filters.name}%` };
+        }
 
-  //       // Filter by therapeutic area
-  //       if (filters.therapeuticArea && filters.therapeuticArea.length) {
-  //         where.therapeuticArea = {
-  //           [Sequelize.Op.in]: filters.therapeuticArea
-  //         };
-  //       }
+        // Filter by therapeutic area
+        if (filters.therapeuticArea && filters.therapeuticArea.length) {
+          where.therapeuticArea = {
+            [Sequelize.Op.in]: filters.therapeuticArea
+          };
+        }
 
-  //       // Filter by stage
-  //       if (filters.stage && filters.stage.length) {
-  //         where.currentStage = { [Sequelize.Op.in]: filters.stage };
-  //       }
+        // Filter by stage
+        if (filters.stage && filters.stage.length) {
+          where.currentStage = {
+            [Sequelize.Op.in]: filters.stage
+          };
+        }
 
-  //       // Filter by createdBy (firstName or lastName)
-  //       if (filters.createdBy) {
-  //         include.push({
-  //           model: User,
-  //           as: 'creator',
-  //           attributes: ['id', 'firstName', 'lastName'],
-  //           where: {
-  //             [Sequelize.Op.or]: [
-  //               {
-  //                 firstName: { [Sequelize.Op.iLike]: `%${filters.createdBy}%` }
-  //               },
-  //               { lastName: { [Sequelize.Op.iLike]: `%${filters.createdBy}%` } }
-  //             ]
-  //           }
-  //         });
-  //       }
+        // Filter by createdBy (search in both firstName and lastName)
+        if (filters.createdBy) {
+          include.push({
+            model: User,
+            as: 'creator',
+            attributes: ['id', 'firstName', 'lastName'],
+            where: {
+              [Sequelize.Op.or]: [
+                {
+                  firstName: { [Sequelize.Op.iLike]: `%${filters.createdBy}%` }
+                },
+                { lastName: { [Sequelize.Op.iLike]: `%${filters.createdBy}%` } }
+              ]
+            }
+          });
+        }
 
-  //       // Filter by modifiedBy (firstName or lastName)
-  //       if (filters.modifiedBy) {
-  //         include.push({
-  //           model: User,
-  //           as: 'modifier',
-  //           attributes: ['id', 'firstName', 'lastName'],
-  //           where: {
-  //             [Sequelize.Op.or]: [
-  //               {
-  //                 firstName: { [Sequelize.Op.iLike]: `%${filters.modifiedBy}%` }
-  //               },
-  //               {
-  //                 lastName: { [Sequelize.Op.iLike]: `%${filters.modifiedBy}%` }
-  //               }
-  //             ]
-  //           }
-  //         });
-  //       }
+        // Filter by modifiedBy (search in both firstName and lastName)
+        if (filters.modifiedBy) {
+          include.push({
+            model: User,
+            as: 'modifier',
+            attributes: ['id', 'firstName', 'lastName'],
+            where: {
+              [Sequelize.Op.or]: [
+                {
+                  firstName: { [Sequelize.Op.iLike]: `%${filters.modifiedBy}%` }
+                },
+                {
+                  lastName: { [Sequelize.Op.iLike]: `%${filters.modifiedBy}%` }
+                }
+              ]
+            }
+          });
+        }
 
-  //       // Filter by createdAt date
-  //       if (filters.createdAt) {
-  //         where.createdAt = { [Sequelize.Op.eq]: new Date(filters.createdAt) };
-  //       }
+        // Filter by createdAt date (convert "YYYY-MM-DD" string to timestamp range)
+        if (filters.createdAt) {
+          const startOfDay = new Date(filters.createdAt);
+          const endOfDay = new Date(filters.createdAt);
+          endOfDay.setUTCHours(23, 59, 59, 999); // Set to end of the day in UTC
 
-  //       // Filter by modifiedAt date
-  //       if (filters.modifiedAt) {
-  //         where.modifiedAt = {
-  //           [Sequelize.Op.eq]: new Date(filters.modifiedAt)
-  //         };
-  //       }
+          where.createdAt = {
+            [Sequelize.Op.between]: [startOfDay, endOfDay]
+          };
+        }
 
-  //       // Filter by dealLead name (firstName or lastName)
-  //       if (filters.dealLead) {
-  //         include.push({
-  //           model: User,
-  //           as: 'leadUsers',
-  //           attributes: ['id', 'firstName', 'lastName'],
-  //           through: {
-  //             attributes: [],
-  //             where: { isDeleted: false }
-  //           },
-  //           where: {
-  //             [Sequelize.Op.or]: [
-  //               {
-  //                 firstName: { [Sequelize.Op.iLike]: `%${filters.dealLead}%` }
-  //               },
-  //               { lastName: { [Sequelize.Op.iLike]: `%${filters.dealLead}%` } }
-  //             ]
-  //           }
-  //         });
-  //       }
-  //     }
+        // Filter by modifiedAt date (convert "YYYY-MM-DD" string to timestamp range)
+        if (filters.modifiedAt) {
+          const startOfDay = new Date(filters.modifiedAt);
+          const endOfDay = new Date(filters.modifiedAt);
+          endOfDay.setUTCHours(23, 59, 59, 999); // Set to end of the day in UTC
 
-  //     // Fetch data and pagination
-  //     const { count, rows } = await Deal.findAndCountAll({
-  //       where,
-  //       include,
-  //       limit,
-  //       offset
-  //     });
+          where.modifiedAt = {
+            [Sequelize.Op.between]: [startOfDay, endOfDay]
+          };
+        }
 
-  //     // Create response object
-  //     const deals = rows.map((deal) => ({
-  //       id: deal.id,
-  //       name: deal.name,
-  //       therapeuticArea: {
-  //         id: deal.therapeuticAreaAssociation?.id,
-  //         name: deal.therapeuticAreaAssociation?.name
-  //       },
-  //       stage: {
-  //         id: deal.stage?.id,
-  //         name: deal.stage?.name
-  //       },
-  //       createdBy: deal.createdBy,
-  //       createdAt: deal.createdAt,
-  //       modifiedBy: deal.modifiedBy,
-  //       modifiedAt: deal.modifiedAt,
-  //       dealLeads: deal.leadUsers.map((leadUser) => ({
-  //         id: leadUser.id,
-  //         name: `${leadUser.firstName} ${leadUser.lastName}`
-  //       }))
-  //     }));
+        // Filter by dealLead name (search in both firstName and lastName)
+        if (filters.dealLead) {
+          include.push({
+            model: User,
+            as: 'leadUsers',
+            attributes: ['id', 'firstName', 'lastName'],
+            through: {
+              attributes: [],
+              where: { isDeleted: false }
+            },
+            where: {
+              [Sequelize.Op.or]: [
+                {
+                  firstName: { [Sequelize.Op.iLike]: `%${filters.dealLead}%` }
+                },
+                { lastName: { [Sequelize.Op.iLike]: `%${filters.dealLead}%` } }
+              ]
+            }
+          });
+        }
+      }
 
-  //     const pagination = PaginationHelper.createPaginationObject(
-  //       count,
-  //       page,
-  //       limit
-  //     );
+      // Pass the query and filters to findAndCountAll to handle pagination
+      const { data, pagination } = await this.findAndCountAll(query, {
+        where,
+        include
+      });
 
-  //     return apiResponse.success(deals, pagination);
-  //   } catch (error) {
-  //     return apiResponse.serverError({ message: error.message });
-  //   }
-  // }
+      // Create response object
+      const deals = data.map((deal) => ({
+        id: deal.id,
+        name: deal.name,
+        therapeuticArea: {
+          id: deal.therapeuticAreaAssociation?.id,
+          name: deal.therapeuticAreaAssociation?.name
+        },
+        stage: {
+          id: deal.stage?.id,
+          name: deal.stage?.name
+        },
+        // createdBy: deal.createdBy,
+        // createdAt: deal.createdAt,
+        modifiedBy: deal.modifiedBy,
+        modifiedAt: deal.modifiedAt,
+        dealLeads: deal.leadUsers
+          ? deal.leadUsers.map((leadUser) => ({
+              id: leadUser.id,
+              name: `${leadUser.firstName} ${leadUser.lastName}`
+            }))
+          : []
+      }));
+
+      return { deals, pagination };
+    } catch (error) {
+      errorHandler.handle(error);
+    }
+  }
 }
 
 module.exports = new DealService();
