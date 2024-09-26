@@ -25,7 +25,14 @@ class SearchPersonService extends baseService {
       // Find user by email and include associated therapeutic areas
       const user = await User.findOne({
         where: { email },
-        attributes: ['id', 'email', 'firstName', 'lastName', 'novartis521ID'],
+        attributes: [
+          'id',
+          'email',
+          'firstName',
+          'lastName',
+          'novartis521ID',
+          'title'
+        ],
         include: [
           {
             model: TherapeuticArea,
@@ -48,6 +55,7 @@ class SearchPersonService extends baseService {
       const response = {
         id: user.id,
         email: user.email,
+        title: user.title,
         firstName: user.firstName,
         lastName: user.lastName,
         novartis521ID: user.novartis521ID,
