@@ -11,7 +11,6 @@ const {
 const baseService = require('./baseService');
 const apiResponse = require('../utils/apiResponse');
 const roles = require('../config/roles');
-const PaginationHelper = require('../utils/paginationHelper');
 const DealDetailResponse = require('../models/response/dealDetailResponse');
 const errorHandler = require('../utils/errorHandler');
 const CustomError = require('../utils/customError');
