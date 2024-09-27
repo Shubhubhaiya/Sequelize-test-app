@@ -91,18 +91,16 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: DataTypes.NOW
       },
       modifiedAt: {
-        allowNull: true,
         type: DataTypes.DATE,
-        defaultValue: null
+        defaultValue: DataTypes.NOW
       },
       modifiedBy: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false,
         references: {
           model: 'Users',
           key: 'id'
-        },
-        defaultValue: null
+        }
       },
       isDeleted: {
         type: DataTypes.BOOLEAN,

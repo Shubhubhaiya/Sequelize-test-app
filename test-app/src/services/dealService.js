@@ -89,7 +89,8 @@ class DealService extends baseService {
           name,
           currentStage: stage,
           therapeuticArea,
-          createdBy: userId
+          createdBy: userId,
+          modifiedBy: userId
         },
         { transaction }
       );
