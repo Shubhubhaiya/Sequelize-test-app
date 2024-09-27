@@ -45,8 +45,9 @@ const getDealDetail = async (req, res, next) => {
 
 const getDealsList = async (req, res, next) => {
   try {
+    const { page = 1, limit = 10 } = req.body;
     const { deals, pagination } = await dealService.getDealsList(
-      req.query,
+      { page, limit },
       req.body
     );
 

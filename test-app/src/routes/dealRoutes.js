@@ -36,8 +36,8 @@ router.get('/:id', validateRouteId, dealController.getDealDetail);
 
 router.post(
   '/list',
-  validatePagination,
-  validateDealListSchema,
+  // validatePagination,
+  // validateDealListSchema,
   dealController.getDealsList
 );
 
