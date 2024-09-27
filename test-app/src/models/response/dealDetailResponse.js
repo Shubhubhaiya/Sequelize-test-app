@@ -11,6 +11,7 @@ class DealDetailResponse {
       name: deal.therapeuticAreaAssociation.name
     };
     this.dealLeads = deal.leadUsers.map((leadUser) => ({
+      id: leadUser.id,
       email: leadUser.email,
       novartis521ID: leadUser.novartis521ID,
       firstName: leadUser.firstName,

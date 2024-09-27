@@ -307,6 +307,7 @@ class DealService extends baseService {
               where: { isDeleted: false } // Fetch only active (non-deleted) deal leads
             },
             attributes: [
+              'id',
               'email',
               'novartis521ID',
               'firstName',
@@ -355,6 +356,16 @@ class DealService extends baseService {
             attributes: [],
             where: { isDeleted: false }
           }
+        },
+        {
+          model: User,
+          as: 'modifier',
+          attributes: ['id', 'firstName', 'lastName']
+        },
+        {
+          model: User,
+          as: 'creator', // Fetch createdBy user details
+          attributes: ['id', 'firstName', 'lastName']
         }
       ];
 
@@ -476,9 +487,19 @@ class DealService extends baseService {
           id: deal.stage?.id,
           name: deal.stage?.name
         },
-        // createdBy: deal.createdBy,
+        // createdBy: deal.creator
+        //   ? {
+        //       id: deal.creator.id,
+        //       name: `${deal.creator.firstName} ${deal.creator.lastName}`
+        //     }
+        //   : null,
         // createdAt: deal.createdAt,
-        modifiedBy: deal.modifiedBy,
+        modifiedBy: deal.modifier
+          ? {
+              id: deal.modifier.id,
+              name: `${deal.modifier.firstName} ${deal.modifier.lastName}`
+            }
+          : null,
         modifiedAt: deal.modifiedAt,
         dealLeads: deal.leadUsers
           ? deal.leadUsers.map((leadUser) => ({
