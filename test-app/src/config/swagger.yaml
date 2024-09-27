@@ -348,6 +348,87 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /deals/list:
+    post:
+      summary: Get a list of deals
+      description: Retrieve a list of deals based on various filters, including pagination.
+      tags:
+        - Deals
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filters:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: 'deal'
+                      description: Filter deals by name.
+                    therapeuticArea:
+                      type: array
+                      items:
+                        type: integer
+                      example: [1, 2, 3]
+                      description: Filter by therapeutic area IDs.
+                    stage:
+                      type: array
+                      items:
+                        type: integer
+                      example: [1, 2, 3, 4, 5, 6, 7]
+                      description: Filter by stage IDs.
+                    modifiedBy:
+                      type: string
+                      example: 'Hatakesam'
+                      description: Search by modifier's first or last name.
+                    modifiedAt:
+                      type: string
+                      format: date
+                      example: '2024-09-24'
+                      description: Filter by modification date.
+                    dealLead:
+                      type: string
+                      example: 'shubhdeep'
+                      description: Search by deal lead's first or last name.
+                page:
+                  type: integer
+                  example: 1
+                  description: Page number.
+                limit:
+                  type: integer
+                  example: 10
+                  description: Number of records per page.
+      responses:
+        200:
+          description: Successful response with deal list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DealsListResponse'
+        400:
+          description: Invalid request parameters.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal Server Error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+      type: object
+      properties:
+        message:
+          type: string
+          example: 'Oops! Invalid request, please recheck information!'
+        error:
+          type: object
+          example: {}
 components:
   schemas:
     LineFunction:
@@ -596,3 +677,76 @@ components:
         status:
           type: integer
           example: 200
+    DealsListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Deal'
+        totalRecords:
+          type: integer
+          example: 27
+        currentPage:
+          type: integer
+          example: 1
+        totalPages:
+          type: integer
+          example: 1
+        pageSize:
+          type: integer
+          example: 27
+    Deal:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+          description: Unique identifier of the deal.
+        name:
+          type: string
+          example: 'Rsporting deal'
+          description: Name of the deal.
+        therapeuticArea:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: 'CRM'
+        stage:
+          type: object
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: 'Triage'
+        modifiedBy:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+              example: 1
+            name:
+              type: string
+              example: 'Hatakesam Goru'
+        modifiedAt:
+          type: string
+          format: date-time
+          example: '2024-09-25T19:49:36.376Z'
+        dealLeads:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 3
+              name:
+                type: string
+                example: 'Shubhdeep Verma'
