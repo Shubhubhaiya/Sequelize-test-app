@@ -11,7 +11,6 @@ module.exports = {
       },
       name: {
         type: Sequelize.STRING,
-        unique: true,
         allowNull: false
       },
       currentStage: {
@@ -41,7 +40,7 @@ module.exports = {
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'")
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       modifiedBy: {
         type: Sequelize.INTEGER,
@@ -54,7 +53,7 @@ module.exports = {
       modifiedAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.literal("CURRENT_TIMESTAMP AT TIME ZONE 'UTC'")
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       isDeleted: {
         type: Sequelize.BOOLEAN,

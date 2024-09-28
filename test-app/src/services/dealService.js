@@ -30,7 +30,9 @@ class DealService extends baseService {
       let { dealLead } = data;
 
       // Check for duplicate deal name
-      const existingDeal = await Deal.findOne({ where: { name } });
+      const existingDeal = await Deal.findOne({
+        where: { name, isDeleted: false }
+      });
       if (existingDeal) {
         throw new CustomError(
           'This deal name is already in use.',
