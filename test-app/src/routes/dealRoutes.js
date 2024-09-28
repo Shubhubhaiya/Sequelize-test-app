@@ -34,11 +34,6 @@ router.get('/:id', validateRouteId, dealController.getDealDetail);
 
 // deal list
 
-router.post(
-  '/list',
-  // validatePagination,
-  // validateDealListSchema,
-  dealController.getDealsList
-);
+router.post('/list', validateDealListSchema, dealController.getDealsList);
 
 module.exports = router;

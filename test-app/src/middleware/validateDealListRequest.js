@@ -4,8 +4,7 @@ const dealListRequest = require('../models/request/dealListRequest');
 
 // Middleware for validating the request body for create deal
 const validateDealListSchema = (req, res, next) => {
-  const { filters } = req.body;
-  const { error } = dealListRequest.validate(filters);
+  const { error } = dealListRequest.validate(req.body);
 
   if (error) {
     return res
