@@ -472,10 +472,14 @@ class DealService extends baseService {
         }
       }
 
+      // Add sorting by modifiedAt in descending order
+      const order = [['modifiedAt', 'DESC']];
+
       // Pass the query and filters to findAndCountAll to handle pagination
       const { data, pagination } = await this.findAndCountAll(query, {
         where,
-        include
+        include,
+        order
       });
 
       // Create response object
