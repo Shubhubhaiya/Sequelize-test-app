@@ -4,9 +4,12 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class LineFunction extends Model {
     static associate(models) {
-      LineFunction.hasMany(models.User, {
+      // LineFunction can be associated with many Users through DealWiseResourceInfo
+      LineFunction.belongsToMany(models.User, {
+        through: models.DealWiseResourceInfo,
         foreignKey: 'lineFunction',
-        as: 'users'
+        otherKey: 'resourceId',
+        as: 'resources'
       });
     }
   }

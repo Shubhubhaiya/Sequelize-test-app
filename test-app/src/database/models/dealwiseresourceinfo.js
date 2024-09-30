@@ -15,6 +15,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'resourceId',
         as: 'resource'
       });
+
+      // A DealWiseResourceInfo belongs to a LineFunction
+      DealWiseResourceInfo.belongsTo(models.LineFunction, {
+        foreignKey: 'lineFunction',
+        as: 'associatedLineFunction' // Changed alias to avoid naming collision
+      });
     }
   }
 
@@ -36,9 +42,33 @@ module.exports = (sequelize, DataTypes) => {
           key: 'id'
         }
       },
+      lineFunction: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'LineFunctions',
+          key: 'id'
+        }
+      },
       vdrAccessRequested: {
         type: DataTypes.BOOLEAN,
-        defaultValue: false
+        allowNull: false
+      },
+      webTrainingStatus: {
+        type: DataTypes.ENUM('Not Started', 'In-progress', 'completed'),
+        allowNull: false
+      },
+      oneToOneDiscussion: {
+        type: DataTypes.TEXT,
+        allowNull: true
+      },
+      optionalColumn: {
+        type: DataTypes.TEXT,
+        allowNull: true
+      },
+      isCoreTeamMember: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false
       }
     },
     {

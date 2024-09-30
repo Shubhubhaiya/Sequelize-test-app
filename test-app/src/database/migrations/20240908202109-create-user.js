@@ -16,14 +16,6 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
-      lineFunction: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'LineFunctions',
-          key: 'id'
-        }
-      },
       title: {
         type: Sequelize.STRING,
         allowNull: false
@@ -33,7 +25,7 @@ module.exports = {
         allowNull: false,
         unique: true
       },
-      phoneNumber: {
+      phone: {
         type: Sequelize.STRING,
         allowNull: true
       },
@@ -46,22 +38,6 @@ module.exports = {
         allowNull: false,
         unique: true
       },
-      oneToOneDiscussion: {
-        type: Sequelize.TEXT,
-        allowNull: true
-      },
-      optionalColumn: {
-        type: Sequelize.TEXT,
-        allowNull: true
-      },
-      webTrainingStatus: {
-        type: Sequelize.STRING,
-        allowNull: false
-      },
-      isCoreTeamMember: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: false
-      },
       roleId: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -69,6 +45,10 @@ module.exports = {
           model: 'Roles',
           key: 'id'
         }
+      },
+      countryCode: {
+        type: Sequelize.STRING,
+        allowNull: true
       },
       createdAt: {
         allowNull: false,

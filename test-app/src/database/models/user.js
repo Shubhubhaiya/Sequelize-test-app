@@ -10,12 +10,6 @@ module.exports = (sequelize, DataTypes) => {
         as: 'role'
       });
 
-      // A User belongs to a LineFunction
-      User.belongsTo(models.LineFunction, {
-        foreignKey: 'lineFunction',
-        as: 'associatedLineFunction'
-      });
-
       // A User can be created by another User (Self-referencing)
       User.belongsTo(models.User, {
         foreignKey: 'createdBy',
@@ -79,14 +73,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false
       },
-      lineFunction: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'LineFunctions',
-          key: 'id'
-        }
-      },
       title: {
         type: DataTypes.STRING,
         allowNull: false
@@ -96,12 +82,18 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         unique: true
       },
-
-      phoneNumber: {
+      phone: {
         type: DataTypes.STRING,
         allowNull: true,
         validate: {
           is: /^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}$/im // Regex for validating international phone numbers
+        }
+      },
+      countryCode: {
+        type: DataTypes.STRING,
+        allowNull: true,
+        validate: {
+          is: /^[A-Z]{2}$/ // Regex for validating ISO country code (2-letter code)
         }
       },
       siteCode: {
@@ -112,23 +104,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
         unique: true
-      },
-      oneToOneDiscussion: {
-        type: DataTypes.TEXT,
-        allowNull: true
-      },
-      optionalColumn: {
-        type: DataTypes.TEXT,
-        allowNull: true
-      },
-      webTrainingStatus: {
-        type: DataTypes.STRING,
-        allowNull: false
-      },
-      isCoreTeamMember: {
-        type: DataTypes.BOOLEAN,
-        allowNull: false,
-        defaultValue: false
       },
       roleId: {
         type: DataTypes.INTEGER,

@@ -4,6 +4,7 @@ const role = require('../database/models/role');
 
 async function createUsers() {
   try {
+    console.log(User);
     // Retrieve role IDs
     const adminRole = await Role.findAll({ where: { name: 'SystemAdmin' } });
     const dealLeadRole = await Role.findAll({ where: { name: 'DealLead' } });
@@ -13,86 +14,46 @@ async function createUsers() {
     const adminUser = await User.create({
       firstName: 'Hatakesam',
       lastName: 'Goru',
-      email: 'Hatakesam@example.com',
-      phoneNumber: '123-456-7890',
+      email: 'Hatakesam.goru@novartis.com',
       roleId: adminRole[0].id,
-      lineFunction: 1,
       title: 'System admin',
       siteCode: 'HQ',
       novartis521ID: 'admin@novartis.net',
-      webTrainingStatus: 'Completed',
       createdBy: 1
     });
 
     const dealLeadUser = await User.create({
       firstName: 'Ravi',
       lastName: 'Chaudhary',
-      email: 'Ravi.lead@example.com',
-      phoneNumber: '987-654-3210',
+      email: 'Ravi.Chaudhary@novartis.com',
       roleId: dealLeadRole[0].id,
-      lineFunction: 2,
       title: 'Lead',
       siteCode: 'HQ',
       novartis521ID: 'Ravi@novartis.net',
-      webTrainingStatus: 'Completed',
       createdBy: 1
     });
 
     const dealLeadUser2 = await User.create({
       firstName: 'Shubhdeep',
       lastName: 'verma',
-      email: 'shubhdeep.lead@example.com',
-      phoneNumber: '987-654-3211',
+      email: 'shubhdeep.verma@novartis.com',
       roleId: dealLeadRole[0].id,
-      lineFunction: 2,
       title: 'software engineer',
       siteCode: 'HQ',
       novartis521ID: 'Shubhdeep@novartis.neta',
-      webTrainingStatus: 'Completed',
       createdBy: 1
     });
 
-    const dealLeadUser3 = await User.create({
+    const resourceUser = await User.create({
       firstName: 'Pankaj',
-      lastName: 'Singh',
-      email: 'Pankaj.lead@example.com',
-      phoneNumber: '987-654-3212',
-      roleId: dealLeadRole[0].id,
-      lineFunction: 2,
-      title: 'UI devloper',
+      lastName: 'verma',
+      email: 'pankaj.verma@novartis.com',
+      roleId: resourceRole[0].id,
+      title: 'Resource',
       siteCode: 'HQ',
-      novartis521ID: 'pankaj@novartis.netb',
-      webTrainingStatus: 'Completed',
+      novartis521ID: 'resource@novartis.net',
       createdBy: 1
     });
-
-    const dealLeadUser4 = await User.create({
-      firstName: 'DealLeadFirstname4',
-      lastName: 'DalLeadLastName4',
-      email: 'deal4.lead@example.com',
-      phoneNumber: '987-654-3213',
-      roleId: dealLeadRole[0].id,
-      lineFunction: 2,
-      title: 'Deal Leader',
-      siteCode: 'HQ',
-      novartis521ID: 'deal@novartis.netc',
-      webTrainingStatus: 'Completed',
-      createdBy: 1
-    });
-
-    // const resourceUser = await User.create({
-    //   firstName: 'ResourceFirstName',
-    //   lastName: 'ResourceLastName',
-    //   email: 'resource@example.com',
-    //   phoneNumber: '555-555-5555',
-    //   roleId: resourceRole[0].id,
-    //   lineFunction: 3,
-    //   title: 'Resource Manager',
-    //   siteCode: 'HQ',
-    //   novartis521ID: 'resource@novartis.net',
-    //   webTrainingStatus: 'Completed',
-    //   createdBy: 1
-    // });
 
     // console.log(
     //   'Users created:',
