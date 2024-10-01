@@ -11,7 +11,7 @@ paths:
   /line-functions:
     get:
       summary: Retrieve a list of all line functions
-      description: Retrieve a paginated list of all line functions. Supports pagination through query parameters.
+      description: Retrieve a list of all line functions.
       tags:
         - Line Functions
       parameters:
@@ -50,7 +50,7 @@ paths:
   /stages:
     get:
       summary: Retrieve a list of all stages
-      description: Retrieve a paginated list of all stages. Supports pagination through query parameters.
+      description: Retrieve a list of all stages.
       tags:
         - Stages
       parameters:
@@ -89,7 +89,7 @@ paths:
   /therapeutic-areas:
     get:
       summary: Retrieve a list of all therapeutic areas
-      description: Retrieve a paginated list of all therapeutic areas. Supports filtering by userId to get associated therapeutic areas.
+      description: Retrieve a list of all therapeutic areas. Supports filtering by userId to get associated therapeutic areas.
       tags:
         - Therapeutic Areas
       parameters:
@@ -159,40 +159,19 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: 'All fields are required and therapeuticAreaIds should be a non-empty array.'
-                  error:
-                    type: object
-                    example: {}
+                $ref: '#/components/schemas/ErrorResponse'
         404:
           description: Not found.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: 'TherapeuticArea with ID 4 not found.'
-                  error:
-                    type: object
-                    example: {}
+                $ref: '#/components/schemas/ErrorResponse'
         500:
           description: Internal server error.
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: 'Unexpected error occurred.'
-                  error:
-                    type: object
-                    example: {}
+                $ref: '#/components/schemas/ErrorResponse'
 
   /deals/create:
     post:
@@ -351,7 +330,7 @@ paths:
   /deals/list:
     post:
       summary: Get a list of deals
-      description: Retrieve a list of deals based on various filters, including pagination.
+      description: Retrieve a list of deals based on various filters.
       tags:
         - Deals
       requestBody:
@@ -421,14 +400,38 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-      type: object
-      properties:
-        message:
-          type: string
-          example: 'Oops! Invalid request, please recheck information!'
-        error:
-          type: object
-          example: {}
+  /search-person:
+    get:
+      summary: Search for a person by email
+      description: Retrieve details of a person based on their email address.
+      tags:
+        - Users
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
+          description: The email of the person to search.
+      responses:
+        200:
+          description: Person details retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PersonResponse'
+        404:
+          description: Person not found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     LineFunction:
@@ -442,25 +445,6 @@ components:
           type: string
           example: 'Alliance Management'
           description: The name of the line function.
-    Pagination:
-      type: object
-      properties:
-        totalRecords:
-          type: integer
-          example: 50
-          description: Total number of records available.
-        currentPage:
-          type: integer
-          example: 1
-          description: Current page number.
-        totalPages:
-          type: integer
-          example: 5
-          description: Total number of pages.
-        pageSize:
-          type: integer
-          example: 10
-          description: Number of records per page.
     LineFunctionsResponse:
       type: object
       properties:
@@ -468,16 +452,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/LineFunction'
-        error:
-          type: object
-          nullable: true
-          example: null
-          description: Error object if an error occurred; otherwise, null.
-        status:
+        totalRecords:
           type: integer
-          example: 200
-        pagination:
-          $ref: '#/components/schemas/Pagination'
+          example: 1
+          description: Total number of records available
+        currentPage:
+          type: integer
+          example: 1
+          description: Current page number
+        totalPages:
+          type: integer
+          example: 1
+          description: Total number of pages
+        pageSize:
+          type: integer
+          example: 10
+          description: Number of records per page
+
     StagesResponse:
       type: object
       properties:
@@ -485,16 +476,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Stage'
-        error:
-          type: object
-          nullable: true
-          example: null
-          description: Error object if an error occurred; otherwise, null.
-        status:
+        totalRecords:
           type: integer
-          example: 200
-        pagination:
-          $ref: '#/components/schemas/Pagination'
+          example: 1
+          description: Total number of records available
+        currentPage:
+          type: integer
+          example: 1
+          description: Current page number
+        totalPages:
+          type: integer
+          example: 1
+          description: Total number of pages
+        pageSize:
+          type: integer
+          example: 10
+          description: Number of records per page
+
     Stage:
       type: object
       properties:
@@ -506,6 +504,7 @@ components:
           type: string
           example: 'Triage'
           description: The name of the stage.
+
     TherapeuticAreasResponse:
       type: object
       properties:
@@ -513,16 +512,23 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TherapeuticArea'
-        error:
-          type: object
-          nullable: true
-          example: null
-          description: Error object if an error occurred; otherwise, null.
-        status:
+        totalRecords:
           type: integer
-          example: 200
-        pagination:
-          $ref: '#/components/schemas/Pagination'
+          example: 1
+          description: Total number of records available
+        currentPage:
+          type: integer
+          example: 1
+          description: Current page number
+        totalPages:
+          type: integer
+          example: 1
+          description: Total number of pages
+        pageSize:
+          type: integer
+          example: 10
+          description: Number of records per page
+
     TherapeuticArea:
       type: object
       properties:
@@ -534,6 +540,7 @@ components:
           type: string
           example: 'CRM'
           description: Name of the therapeutic area.
+
     ErrorResponse:
       type: object
       properties:
@@ -541,10 +548,7 @@ components:
           type: string
           example: 'Oops! Invalid request, please recheck information!'
           description: Error message detailing what went wrong.
-        error:
-          type: object
-          example: {}
-          description: Additional error details.
+
     AssignTherapeuticAreaRequest:
       type: object
       required:
@@ -566,6 +570,7 @@ components:
           items:
             type: integer
           example: [1, 2, 3]
+
     CreateDealRequest:
       type: object
       required:
@@ -594,6 +599,7 @@ components:
           type: integer
           description: (Optional) The ID of the deal lead.
           example: 2
+
     UpdateDealRequest:
       type: object
       required:
@@ -622,6 +628,7 @@ components:
           type: integer
           description: (Optional) The ID of the deal lead.
           example: 2
+
     DealDetailResponse:
       type: object
       properties:
@@ -669,14 +676,7 @@ components:
                   title:
                     type: string
                     example: 'Deal Leader'
-        error:
-          type: object
-          nullable: true
-          example: null
-          description: Error object if an error occurred; otherwise, null.
-        status:
-          type: integer
-          example: 200
+
     DealsListResponse:
       type: object
       properties:
@@ -686,16 +686,21 @@ components:
             $ref: '#/components/schemas/Deal'
         totalRecords:
           type: integer
-          example: 27
+          example: 1
+          description: Total number of records available
         currentPage:
           type: integer
           example: 1
+          description: Current page number
         totalPages:
           type: integer
           example: 1
+          description: Total number of pages
         pageSize:
           type: integer
-          example: 27
+          example: 10
+          description: Number of records per page
+
     Deal:
       type: object
       properties:
@@ -705,7 +710,7 @@ components:
           description: Unique identifier of the deal.
         name:
           type: string
-          example: 'Rsporting deal'
+          example: 'BOSTON'
           description: Name of the deal.
         therapeuticArea:
           type: object
@@ -750,3 +755,42 @@ components:
               name:
                 type: string
                 example: 'Shubhdeep Verma'
+
+    PersonResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 3
+          description: The unique identifier of the person.
+        email:
+          type: string
+          example: 'shubhdeep.lead@example.com'
+          description: The email of the person.
+        title:
+          type: string
+          example: 'Software Engineer'
+          description: The title of the person.
+        firstName:
+          type: string
+          example: 'Shubhdeep'
+          description: The first name of the person.
+        lastName:
+          type: string
+          example: 'Verma'
+          description: The last name of the person.
+        novartis521ID:
+          type: string
+          example: 'shubhdeep@novartis.neta'
+          description: The Novartis ID of the person.
+        therapeuticAreas:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              name:
+                type: string
+                example: 'CRM'
