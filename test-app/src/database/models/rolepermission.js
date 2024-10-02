@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'RolePermission',
-      timestamps: false
+      timestamps: true
     }
   );
   return RolePermission;
