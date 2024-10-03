@@ -21,18 +21,6 @@ module.exports = {
           key: 'id'
         }
       },
-      vdrAccessRequested: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false
-      },
-      webTrainingStatus: {
-        type: Sequelize.STRING,
-        allowNull: false
-      },
-      isCoreTeamMember: {
-        type: Sequelize.BOOLEAN,
-        allowNull: false
-      },
       lineFunction: {
         type: Sequelize.INTEGER,
         allowNull: false,
@@ -41,6 +29,14 @@ module.exports = {
           key: 'id'
         }
       },
+      vdrAccessRequested: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false
+      },
+      webTrainingStatus: {
+        type: Sequelize.ENUM('Not Started', 'In-progress', 'completed'),
+        allowNull: false
+      },
       oneToOneDiscussion: {
         type: Sequelize.TEXT,
         allowNull: true
@@ -48,6 +44,36 @@ module.exports = {
       optionalColumn: {
         type: Sequelize.TEXT,
         allowNull: true
+      },
+      isCoreTeamMember: {
+        type: Sequelize.BOOLEAN,
+        allowNull: false
+      },
+      createdBy: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        }
+      },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+      },
+      modifiedBy: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        }
+      },
+      modifiedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       }
     });
   },

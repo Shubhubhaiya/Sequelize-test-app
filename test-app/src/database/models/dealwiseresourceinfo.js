@@ -4,22 +4,34 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class DealWiseResourceInfo extends Model {
     static associate(models) {
-      // A DealWiseResourceInfo belongs to a Deal
+      // A DealWiseResourceInfo belongs to a Deal (Many-to-One relationship)
       DealWiseResourceInfo.belongsTo(models.Deal, {
         foreignKey: 'dealId',
         as: 'deal'
       });
 
-      // A DealWiseResourceInfo belongs to a User
+      // A DealWiseResourceInfo belongs to a User (Many-to-One relationship)
       DealWiseResourceInfo.belongsTo(models.User, {
         foreignKey: 'resourceId',
         as: 'resource'
       });
 
-      // A DealWiseResourceInfo belongs to a LineFunction
+      // A DealWiseResourceInfo belongs to a LineFunction (Many-to-One relationship)
       DealWiseResourceInfo.belongsTo(models.LineFunction, {
         foreignKey: 'lineFunction',
         as: 'associatedLineFunction' // Changed alias to avoid naming collision
+      });
+
+      // A DealWiseResourceInfo can be created by a User (Many-to-One relationship)
+      DealWiseResourceInfo.belongsTo(models.User, {
+        foreignKey: 'createdBy',
+        as: 'creator'
+      });
+
+      // A DealWiseResourceInfo can be modified by a User (Many-to-One relationship)
+      DealWiseResourceInfo.belongsTo(models.User, {
+        foreignKey: 'modifiedBy',
+        as: 'modifier'
       });
     }
   }
@@ -69,13 +81,30 @@ module.exports = (sequelize, DataTypes) => {
       isCoreTeamMember: {
         type: DataTypes.BOOLEAN,
         allowNull: false
+      },
+      createdBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        }
+      },
+      modifiedBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        }
       }
     },
     {
       sequelize,
       modelName: 'DealWiseResourceInfo',
       tableName: 'DealWiseResourceInfo',
-      timestamps: false
+      timestamps: true,
+      updatedAt: modifiedAt
     }
   );
 
