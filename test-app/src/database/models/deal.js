@@ -85,14 +85,6 @@ module.exports = (sequelize, DataTypes) => {
           key: 'id'
         }
       },
-      createdAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-      },
-      modifiedAt: {
-        type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
-      },
       modifiedBy: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -109,14 +101,8 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Deal',
-      timestamps: false,
-      updatedAt: 'modifiedAt',
-      createdAt: 'createdAt',
-      hooks: {
-        beforeUpdate: (deal, options) => {
-          deal.modifiedAt = new Date(); // Set modifiedAt to the current date
-        }
-      }
+      timestamps: true,
+      updatedAt: 'modifiedAt'
     }
   );
 

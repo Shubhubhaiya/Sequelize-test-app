@@ -13,6 +13,16 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'dealId',
         as: 'deal'
       });
+
+      DealLeadMapping.belongsTo(models.User, {
+        foreignKey: 'createdBy',
+        as: 'creator'
+      });
+
+      DealLeadMapping.belongsTo(models.User, {
+        foreignKey: 'modifiedBy',
+        as: 'modifier'
+      });
     }
   }
 
@@ -34,6 +44,22 @@ module.exports = (sequelize, DataTypes) => {
           key: 'id'
         }
       },
+      createdBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        }
+      },
+      modifiedBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        }
+      },
       isDeleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
@@ -43,7 +69,8 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: 'DealLeadMapping',
       tableName: 'DealLeadMapping',
-      timestamps: false
+      timestamps: true,
+      updatedAt: 'modifiedAt'
     }
   );
 

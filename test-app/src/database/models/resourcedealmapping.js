@@ -18,6 +18,16 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'dealStageId',
         as: 'stage'
       });
+
+      ResourceDealMapping.belongsTo(models.User, {
+        foreignKey: 'createdBy',
+        as: 'creator'
+      });
+
+      ResourceDealMapping.belongsTo(models.User, {
+        foreignKey: 'modifiedBy',
+        as: 'modifier'
+      });
     }
   }
 
@@ -47,6 +57,22 @@ module.exports = (sequelize, DataTypes) => {
           key: 'id'
         }
       },
+      createdBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        }
+      },
+      modifiedBy: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'Users',
+          key: 'id'
+        }
+      },
       isDeleted: {
         type: DataTypes.BOOLEAN,
         defaultValue: false
@@ -56,7 +82,8 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: 'ResourceDealMapping',
       tableName: 'ResourceDealMapping',
-      timestamps: false
+      timestamps: true,
+      updatedAt: 'modifiedAt'
     }
   );
 
