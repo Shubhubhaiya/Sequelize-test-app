@@ -34,7 +34,9 @@ class TherapeuticAreaService extends baseService {
         throw new CustomError('User not found.', statusCodes.NOT_FOUND);
       }
 
-      const customOptions = {};
+      const customOptions = {
+        attributes: ['id', 'name']
+      };
 
       // If the user is a DealLead, filter by userId
       if (user.roleId === roles.DEAL_LEAD) {
