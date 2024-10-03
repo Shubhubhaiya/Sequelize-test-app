@@ -5,6 +5,7 @@ const {
   User,
   DealLeadMapping,
   DealWiseResourceInfo,
+  ResourceDealMapping,
   sequelize,
   Sequelize
 } = require('../database/models');
@@ -288,7 +289,7 @@ class DealService extends baseService {
       const user = await User.findByPk(userId);
 
       if (!user) {
-        throw new CustomError('Invalid user', statusCodes.BAD_REQUEST);
+        throw new CustomError('User not found', statusCodes.BAD_REQUEST);
       }
 
       // Ensure deal leads can only delete their own deals
@@ -313,6 +314,12 @@ class DealService extends baseService {
 
       // Soft delete associated DealWiseResourceInfo records
       await DealWiseResourceInfo.update(
+        { isDeleted: true },
+        { where: { dealId }, transaction }
+      );
+
+      // Soft delete associated Resource deal mapping records
+      await ResourceDealMapping.update(
         { isDeleted: true },
         { where: { dealId }, transaction }
       );
