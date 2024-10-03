@@ -13,17 +13,22 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: false
       },
-      entityId: {
-        type: Sequelize.INTEGER,
+      description: {
+        type: Sequelize.TEXT,
         allowNull: false
       },
-      entityType: {
-        type: Sequelize.STRING,
-        allowNull: false
+      dealId: {
+        type: Sequelize.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'Deals',
+          key: 'id'
+        }
       },
       actionDate: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       performedBy: {
         type: Sequelize.INTEGER,

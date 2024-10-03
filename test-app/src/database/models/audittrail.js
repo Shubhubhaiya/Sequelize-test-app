@@ -4,7 +4,6 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class AuditTrail extends Model {
     static associate(models) {
-      // An AuditTrail is performed by a User (Many-to-One relationship)
       AuditTrail.belongsTo(models.User, {
         foreignKey: 'performedBy',
         as: 'user'
@@ -17,19 +16,24 @@ module.exports = (sequelize, DataTypes) => {
       id: {
         type: DataTypes.INTEGER,
         autoIncrement: true,
-        primaryKey: true
+        primaryKey: true,
+        allowNull: false
       },
       action: {
         type: DataTypes.STRING,
         allowNull: false
       },
-      entityId: {
-        type: DataTypes.INTEGER,
+      description: {
+        type: DataTypes.TEXT,
         allowNull: false
       },
-      entityType: {
-        type: DataTypes.STRING,
-        allowNull: false
+      dealId: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: {
+          model: 'Deals',
+          key: 'id'
+        }
       },
       actionDate: {
         type: DataTypes.DATE,
@@ -47,6 +51,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'AuditTrail',
+      tableName: 'AuditTrail',
       timestamps: false
     }
   );
