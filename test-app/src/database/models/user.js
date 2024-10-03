@@ -117,16 +117,17 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         type: DataTypes.DATE
       },
+
       createdBy: {
         type: DataTypes.INTEGER,
-        allowNull: false,
+        allowNull: true,
         references: {
           model: 'Users',
           key: 'id'
         }
       },
       modifiedAt: {
-        allowNull: true,
+        allowNull: false,
         type: DataTypes.DATE
       },
       modifiedBy: {

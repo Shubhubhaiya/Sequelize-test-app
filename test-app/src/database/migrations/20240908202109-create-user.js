@@ -1,4 +1,5 @@
 'use strict';
+
 module.exports = {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('Users', {
@@ -29,6 +30,10 @@ module.exports = {
         type: Sequelize.STRING,
         allowNull: true
       },
+      countryCode: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
       siteCode: {
         type: Sequelize.STRING,
         allowNull: false
@@ -46,26 +51,28 @@ module.exports = {
           key: 'id'
         }
       },
-      countryCode: {
-        type: Sequelize.STRING,
-        allowNull: true
-      },
       createdAt: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
+      },
+
+      modifiedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+        defaultValue: Sequelize.literal('CURRENT_TIMESTAMP')
       },
       createdBy: {
         type: Sequelize.INTEGER,
+        allowNull: true,
         references: {
           model: 'Users',
           key: 'id'
         }
       },
-      modifiedAt: {
-        type: Sequelize.DATE
-      },
       modifiedBy: {
         type: Sequelize.INTEGER,
+        allowNull: true,
         references: {
           model: 'Users',
           key: 'id'
@@ -73,6 +80,7 @@ module.exports = {
       }
     });
   },
+
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('Users');
   }

@@ -9,7 +9,10 @@ class LineFunctionService extends baseService {
 
   async getAllLineFunctions(query) {
     try {
-      const { data, pagination } = await this.findAndCountAll(query);
+      const attributes = ['id', 'name'];
+      const { data, pagination } = await this.findAndCountAll(query, {
+        attributes
+      });
       return { data, pagination };
     } catch (error) {
       errorHandler.handle(error);
