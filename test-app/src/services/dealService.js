@@ -141,27 +141,45 @@ class DealService extends baseService {
     try {
       transaction = await sequelize.transaction();
 
+      // fetching the request body data
       const { name, stage, therapeuticArea, userId, dealLead } = data;
 
       let newDealLead = dealLead;
 
+      // check if user(system admin) exists
       const user = await User.findByPk(userId);
       if (!user) {
         throw new CustomError('User not found.', statusCodes.BAD_REQUEST);
       }
 
+      // only system admin can update the deal
+      if (user.roleId !== roles.SYSTEM_ADMIN) {
+        throw new CustomError(
+          'Only system admin can update the deal',
+          statusCodes.UNAUTHORIZED
+        );
+      }
+
+      // Validate deallead existance and role
+      const dealLeadResponse = await User.findByPk(newDealLead);
+      if (!dealLeadResponse) {
+        throw new CustomError('Deal lead not found.', statusCodes.BAD_REQUEST);
+      }
+
+      if (dealLeadResponse.roleId !== roles.DEAL_LEAD) {
+        throw new CustomError(
+          'Deal can only assigned to deal lead.',
+          statusCodes.BAD_REQUEST
+        );
+      }
+
+      // check if deal exists
       const deal = await Deal.findByPk(dealId);
       if (!deal) {
         throw new CustomError('Deal not found.', statusCodes.NOT_FOUND);
       }
 
-      if (user.roleId === roles.DEAL_LEAD && deal.createdBy !== userId) {
-        throw new CustomError(
-          'Unauthorized to update this deal.',
-          statusCodes.FORBIDDEN
-        );
-      }
-
+      //Check if any other deal with same name exists
       const existingDealWithSameName = await Deal.findOne({
         where: { name, id: { [Sequelize.Op.ne]: dealId } }
       });
@@ -173,6 +191,7 @@ class DealService extends baseService {
         );
       }
 
+      // check if stage and therapeurtic area exists
       const [isStageExists, isTherapeuticAreaExist] = await Promise.all([
         Stage.findByPk(stage),
         TherapeuticArea.findByPk(therapeuticArea)
@@ -189,28 +208,30 @@ class DealService extends baseService {
         );
       }
 
+      // update the deal
       await deal.update(
         {
           name,
           currentStage: stage,
           therapeuticArea,
-          modifiedBy: userId,
-          modifiedAt: new Date()
+          modifiedBy: userId
         },
         { transaction }
       );
 
+      // check who is active deal lead of deal
       const activeDealLeadMapping = await DealLeadMapping.findOne({
         where: { dealId, isDeleted: false }
       });
 
+      // remove old deal lead from deal
       if (
         activeDealLeadMapping &&
         activeDealLeadMapping.userId !== newDealLead
       ) {
-        await DealLeadMapping.update(
-          { isDeleted: true },
-          { where: { dealId }, transaction }
+        await activeDealLeadMapping.update(
+          { isDeleted: true, modifiedBy: userId },
+          { transaction }
         );
 
         const inactiveDealLeadMapping = await DealLeadMapping.findOne({
@@ -219,12 +240,17 @@ class DealService extends baseService {
 
         if (inactiveDealLeadMapping) {
           await inactiveDealLeadMapping.update(
-            { isDeleted: false },
+            { isDeleted: false, modifiedBy: userId },
             { transaction }
           );
         } else {
           await DealLeadMapping.create(
-            { userId: newDealLead, dealId },
+            {
+              userId: newDealLead,
+              dealId,
+              createdBy: userId,
+              modifiedBy: userId
+            },
             { transaction }
           );
         }
