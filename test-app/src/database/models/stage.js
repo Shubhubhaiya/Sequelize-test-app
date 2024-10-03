@@ -27,7 +27,8 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Stage',
-      timestamps: true
+      timestamps: true,
+      updatedAt: 'modifiedAt'
     }
   );
 

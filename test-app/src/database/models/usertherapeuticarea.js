@@ -31,6 +31,7 @@ module.exports = (sequelize, DataTypes) => {
       sequelize,
       modelName: 'UserTherapeuticAreas',
       timestamps: true,
+      updatedAt: 'modifiedAt',
       indexes: [
         {
           unique: true, // Ensures combination of userId and therapeuticAreaId is unique

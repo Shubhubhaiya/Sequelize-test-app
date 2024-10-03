@@ -32,7 +32,8 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'TherapeuticArea',
-      timestamps: true
+      timestamps: true,
+      updatedAt: 'modifiedAt'
     }
   );
 

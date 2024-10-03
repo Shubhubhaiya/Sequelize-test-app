@@ -30,7 +30,8 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'LineFunction',
-      timestamps: true
+      timestamps: true,
+      updatedAt: 'modifiedAt'
     }
   );
 

@@ -33,7 +33,8 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: 'Role',
-      timestamps: true
+      timestamps: true,
+      updatedAt: 'modifiedAt'
     }
   );
 

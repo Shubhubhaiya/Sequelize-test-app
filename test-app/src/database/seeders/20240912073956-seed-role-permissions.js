@@ -64,27 +64,21 @@ module.exports = {
         // Deal Lead gets specific permissions
         {
           roleId: roleMap.get('DealLead'),
-          permissionId: permissionMap.get('create_deal')
-        },
-        {
-          roleId: roleMap.get('DealLead'),
-          permissionId: permissionMap.get('update_deal')
-        },
-        {
-          roleId: roleMap.get('DealLead'),
-          permissionId: permissionMap.get('delete_deal')
-        },
-        {
-          roleId: roleMap.get('DealLead'),
           permissionId: permissionMap.get('view_deal')
         },
+        // only view deals under his own TA
         {
           roleId: roleMap.get('DealLead'),
           permissionId: permissionMap.get('add_resource')
         },
+        // can only add, view, edit , update , delete resources to his deals
         {
           roleId: roleMap.get('DealLead'),
           permissionId: permissionMap.get('edit_resource')
+        },
+        {
+          roleId: roleMap.get('DealLead'),
+          permissionId: permissionMap.get('delete_resource')
         },
         {
           roleId: roleMap.get('DealLead'),
