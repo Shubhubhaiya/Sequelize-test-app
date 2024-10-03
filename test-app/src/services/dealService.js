@@ -26,8 +26,50 @@ class DealService extends baseService {
     try {
       transaction = await sequelize.transaction();
 
-      const { name, stage, therapeuticArea, userId } = data;
-      let { dealLead } = data;
+      const { name, stage, therapeuticArea, userId, dealLead } = data;
+
+      // Validate user existence and role
+      const userResponse = await User.findByPk(userId);
+      if (!userResponse) {
+        throw new CustomError('User not found.', statusCodes.BAD_REQUEST);
+      }
+
+      // Check if the user is a System Admin
+      if (userResponse.roleId !== roles.SYSTEM_ADMIN) {
+        throw new CustomError(
+          'Only System Admins are authorized to create deals.',
+          statusCodes.UNAUTHORIZED
+        );
+      }
+
+      // Validate deallead existance and role
+      const dealLeadResponse = await User.findByPk(dealLead);
+      if (!dealLeadResponse) {
+        throw new CustomError('Deal lead not found.', statusCodes.BAD_REQUEST);
+      }
+
+      if (dealLeadResponse.roleId !== roles.DEAL_LEAD) {
+        throw new CustomError(
+          'Deal can only assigned to deal lead.',
+          statusCodes.BAD_REQUEST
+        );
+      }
+
+      // Validate the deal lead (if provided) belongs to the therapeutic area
+      const dealLeadUser = await User.findByPk(dealLead, {
+        include: {
+          model: TherapeuticArea,
+          as: 'therapeuticAreas',
+          where: { id: therapeuticArea }
+        }
+      });
+
+      if (!dealLeadUser) {
+        throw new CustomError(
+          'Deal Lead is not associated with this Therapeutic Area.',
+          statusCodes.BAD_REQUEST
+        );
+      }
 
       // Check for duplicate deal name
       const existingDeal = await Deal.findOne({
@@ -56,35 +98,6 @@ class DealService extends baseService {
         );
       }
 
-      // Validate user existence
-      const userResponse = await User.findByPk(userId);
-      if (!userResponse) {
-        throw new CustomError('User not found.', statusCodes.BAD_REQUEST);
-      }
-
-      // Assign default deal lead to the user who created the deal
-      if (userResponse.roleId === roles.DEAL_LEAD) {
-        dealLead = userResponse.id;
-      }
-
-      // Validate the deal lead (if provided) belongs to the therapeutic area
-      if (dealLead) {
-        const dealLeadUser = await User.findByPk(dealLead, {
-          include: {
-            model: TherapeuticArea,
-            as: 'therapeuticAreas',
-            where: { id: therapeuticArea }
-          }
-        });
-
-        if (!dealLeadUser) {
-          throw new CustomError(
-            'Deal Lead is not associated with this Therapeutic Area.',
-            statusCodes.BAD_REQUEST
-          );
-        }
-      }
-
       // Create the deal
       const newDeal = await Deal.create(
         {
@@ -97,10 +110,14 @@ class DealService extends baseService {
         { transaction }
       );
 
+      // If dealLead is valid, create the mapping
+
       await DealLeadMapping.create(
         {
           userId: dealLead,
-          dealId: newDeal.id
+          dealId: newDeal.id,
+          createdBy: userId,
+          modifiedBy: userId
         },
         { transaction }
       );
@@ -108,7 +125,7 @@ class DealService extends baseService {
       // Commit the transaction
       await transaction.commit();
 
-      return apiResponse.success(null, null, 'Deal created successfuly');
+      return apiResponse.success(null, null, 'Deal created successfully');
     } catch (error) {
       // Rollback the transaction if it exists
       if (transaction) {

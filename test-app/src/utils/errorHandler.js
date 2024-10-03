@@ -53,8 +53,7 @@ class ErrorHandler {
 
   static handleValidationError(error) {
     const err = error.errors[0]; // Get the first validation error
-    const message = 'Validation failed.';
-    // const detail = err.message || 'Invalid input.';
+    const message = err.message || 'Validation failed.';
     throw new CustomError(message, statusCodes.BAD_REQUEST);
   }
 
