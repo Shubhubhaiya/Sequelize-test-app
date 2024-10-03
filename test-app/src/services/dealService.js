@@ -379,7 +379,22 @@ class DealService extends baseService {
 
   async getDealsList(query, body) {
     try {
-      const { filters } = body;
+      const { filters, userId } = body;
+
+      // Fetch user details to determine role
+      const user = await User.findByPk(userId, {
+        include: [
+          {
+            model: TherapeuticArea,
+            as: 'therapeuticAreas',
+            attributes: ['id']
+          }
+        ]
+      });
+
+      if (!user) {
+        throw new CustomError('User not found.', statusCodes.BAD_REQUEST);
+      }
 
       // Build filter criteria
       const where = { isDeleted: false };
@@ -414,6 +429,18 @@ class DealService extends baseService {
           attributes: ['id', 'firstName', 'lastName']
         }
       ];
+
+      // Apply role-based filtering
+      if (user.roleId === roles.SYSTEM_ADMIN) {
+        // System admins can view all deals, no further filtering required
+      } else if (user.roleId === roles.DEAL_LEAD) {
+        // Deal leads can only see deals in their assigned therapeutic areas
+        where.therapeuticArea = {
+          [Sequelize.Op.in]: user.therapeuticAreas.map((ta) => ta.id)
+        };
+      } else {
+        throw new CustomError('Unauthorized access.', statusCodes.UNAUTHORIZED);
+      }
 
       if (filters) {
         // Filter by deal name

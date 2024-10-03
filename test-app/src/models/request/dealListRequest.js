@@ -47,9 +47,15 @@ const filtersSchema = joi.object({
   })
 });
 
-// Define the validation schema for pagination and root-level properties
+// Define the validation schema for pagination, userId, and root-level properties
 const dealListRequest = joi
   .object({
+    userId: joi.number().integer().required().messages({
+      'number.base': 'User ID must be a number',
+      'number.integer': 'User ID must be an integer',
+      'any.required': 'User ID is required'
+    }),
+
     filters: filtersSchema.optional().messages({
       'object.base': 'Filters must be an object'
     }),

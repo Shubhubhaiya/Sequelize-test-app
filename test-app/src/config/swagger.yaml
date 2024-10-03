@@ -330,7 +330,7 @@ paths:
   /deals/list:
     post:
       summary: Get a list of deals
-      description: Retrieve a list of deals based on various filters.
+      description: Retrieve a list of deals based on various filters. This endpoint supports pagination and filters, including therapeutic area, stage, and deal lead information. Only system admins can view all deals, while deal leads are restricted to their assigned therapeutic areas.
       tags:
         - Deals
       requestBody:
@@ -340,6 +340,10 @@ paths:
             schema:
               type: object
               properties:
+                userId:
+                  type: integer
+                  example: 1
+                  description: The ID of the user requesting the list. This determines access rights.
                 filters:
                   type: object
                   properties:
@@ -359,10 +363,19 @@ paths:
                         type: integer
                       example: [1, 2, 3, 4, 5, 6, 7]
                       description: Filter by stage IDs.
+                    createdBy:
+                      type: string
+                      example: 'Shubhdeep'
+                      description: Search by creator's first or last name.
                     modifiedBy:
                       type: string
                       example: 'Hatakesam'
                       description: Search by modifier's first or last name.
+                    createdAt:
+                      type: string
+                      format: date
+                      example: '2024-09-24'
+                      description: Filter by creation date.
                     modifiedAt:
                       type: string
                       format: date
@@ -399,7 +412,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-
   /search-person:
     get:
       summary: Search for a person by email
