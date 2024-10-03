@@ -104,7 +104,7 @@ module.exports = (sequelize, DataTypes) => {
       modelName: 'DealWiseResourceInfo',
       tableName: 'DealWiseResourceInfo',
       timestamps: true,
-      updatedAt: modifiedAt
+      updatedAt: 'modifiedAt'
     }
   );
 

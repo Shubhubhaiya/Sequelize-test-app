@@ -19,7 +19,8 @@ async function createUsers() {
       title: 'System admin',
       siteCode: 'HQ',
       novartis521ID: 'admin@novartis.net',
-      createdBy: 1
+      createdBy: 1,
+      modifiedBy: 1
     });
 
     const dealLeadUser = await User.create({
@@ -30,7 +31,8 @@ async function createUsers() {
       title: 'Lead',
       siteCode: 'HQ',
       novartis521ID: 'Ravi@novartis.net',
-      createdBy: 1
+      createdBy: 1,
+      modifiedBy: 1
     });
 
     const dealLeadUser2 = await User.create({
@@ -41,7 +43,8 @@ async function createUsers() {
       title: 'software engineer',
       siteCode: 'HQ',
       novartis521ID: 'Shubhdeep@novartis.neta',
-      createdBy: 1
+      createdBy: 1,
+      modifiedBy: 1
     });
 
     const resourceUser = await User.create({
@@ -52,7 +55,8 @@ async function createUsers() {
       title: 'Resource',
       siteCode: 'HQ',
       novartis521ID: 'resource@novartis.net',
-      createdBy: 1
+      createdBy: 1,
+      modifiedBy: 1
     });
 
     // console.log(
