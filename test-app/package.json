@@ -1,5 +1,5 @@
 {
-  "name": "test-app",
+  "name": "SGMercatorBackend",
   "version": "1.0.0",
   "description": "Express application generated with create-express-app-js",
   "main": "src/app.js",
