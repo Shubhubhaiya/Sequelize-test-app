@@ -1,5 +1,5 @@
 {
-  "name": "SGMercatorBackend",
+  "name": "sg-mercator-backend",
   "version": "1.0.0",
   "description": "Express application generated with create-express-app-js",
   "main": "src/app.js",
@@ -14,7 +14,8 @@
     "seed:undo:all": "sequelize-cli db:seed:undo:all --config src/config/config.js --seeders-path src/database/seeders",
     "create:migration": "sequelize-cli migration:generate --name --migrations-path src/database/migrations",
     "create:model": "sequelize-cli model:generate --name ModelName --attributes firstName:string,lastName:string --models-path src/database/models",
-    "create:seed": "sequelize-cli seed:generate --name --seeders-path src/database/seeders"
+    "create:seed": "sequelize-cli seed:generate --name --seeders-path src/database/seeders",
+    "build": "echo 'Build step for deployment' && mkdir -p dist && cp -r src/* dist/"
   },
   "keywords": [
     "express",
