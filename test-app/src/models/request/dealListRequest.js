@@ -38,8 +38,8 @@ const filtersSchema = joi.object({
     'string.base': 'Modified By must be a string'
   }),
 
-  modifiedAt: joi.date().allow(null, '').optional().messages({
-    'date.base': 'Modified At must be a valid date'
+  modifiedAt: joi.string().trim().allow(null, '').optional().messages({
+    'string.base': 'Modified date should be in format YYYY-MM-DD'
   }),
 
   dealLead: joi.string().trim().allow(null, '').optional().messages({
