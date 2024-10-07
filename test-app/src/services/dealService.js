@@ -181,13 +181,13 @@ class DealService extends baseService {
       }
 
       //Check if any other deal with same name exists
-      const existingDealWithSameName = await Deal.findOne({
-        where: { name, id: { [Sequelize.Op.ne]: dealId } }
+      const isDealWithSameNameExists = await Deal.findOne({
+        where: { name, id: { [Sequelize.Op.ne]: dealId }, isDeleted: false }
       });
 
-      if (existingDealWithSameName) {
+      if (isDealWithSameNameExists) {
         throw new CustomError(
-          'Deal name already in use.',
+          'This deal name is already in use.',
           statusCodes.CONFLICT
         );
       }
