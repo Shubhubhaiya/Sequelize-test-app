@@ -1,7 +1,8 @@
 const {
   User,
   TherapeuticArea,
-  UserTherapeuticAreas
+  UserTherapeuticAreas,
+  Sequelize
 } = require('../database/models');
 const baseService = require('./baseService');
 const errorHandler = require('../utils/errorHandler');
@@ -24,7 +25,7 @@ class SearchPersonService extends baseService {
 
       // Find user by email and include associated therapeutic areas
       const user = await User.findOne({
-        where: { email },
+        where: { email: { [Sequelize.Op.iLike]: email } },
         attributes: [
           'id',
           'email',
