@@ -412,6 +412,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
   /search-person:
     get:
       summary: Search for a person by email
@@ -444,6 +445,43 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
+  /resources/add:
+    post:
+      summary: Add resources to a deal
+      description: Add one or more resources to a deal with stages and line function. Supports adding multiple resources in a single request.
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddResourceRequest'
+      responses:
+        201:
+          description: Resource(s) added successfully.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: 'Resources added successfully'
+        400:
+          description: Validation failed or bad request.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     LineFunction:
@@ -457,6 +495,7 @@ components:
           type: string
           example: 'Alliance Management'
           description: The name of the line function.
+
     LineFunctionsResponse:
       type: object
       properties:
@@ -806,3 +845,69 @@ components:
               name:
                 type: string
                 example: 'CRM'
+
+    AddResourceRequest:
+      type: object
+      required:
+        - userId
+        - dealId
+        - resources
+      properties:
+        dealId:
+          type: integer
+          example: 1
+          description: The ID of the deal to which resources will be added.
+        userId:
+          type: integer
+          example: 5
+          description: The ID of the user adding the resource(s).
+        resources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceItem'
+
+    ResourceItem:
+      type: object
+      required:
+        - email
+        - lineFunction
+        - stages
+        - vdrAccessRequested
+        - webTrainingStatus
+        - isCoreTeamMember
+      properties:
+        email:
+          type: string
+          example: john.doe@example.com
+          description: Email of the resource.
+        lineFunction:
+          type: integer
+          example: 101
+          description: The line function ID of the resource.
+        stages:
+          type: array
+          items:
+            type: integer
+            example: 1
+          description: Array of stage IDs.
+        vdrAccessRequested:
+          type: boolean
+          example: true
+          description: Specifies whether VDR access is requested.
+        webTrainingStatus:
+          type: string
+          enum: [Not Started, In-progress, completed]
+          example: In-progress
+          description: The web training status of the resource.
+        oneToOneDiscussion:
+          type: string
+          example: 'Discussion notes here.'
+          description: Optional notes from a one-to-one discussion.
+        optionalColumn:
+          type: string
+          example: 'Additional information goes here.'
+          description: Optional information (optional).
+        isCoreTeamMember:
+          type: boolean
+          example: true
+          description: Specifies whether the resource is a core team member.
