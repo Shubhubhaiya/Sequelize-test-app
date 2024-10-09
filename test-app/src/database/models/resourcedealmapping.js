@@ -4,26 +4,37 @@ const { Model } = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   class ResourceDealMapping extends Model {
     static associate(models) {
-      ResourceDealMapping.belongsTo(models.User, {
-        foreignKey: 'userId',
-        as: 'resource'
+      // A ResourceDealMapping belongs to DealWiseResourceInfo by dealId
+      ResourceDealMapping.belongsTo(models.DealWiseResourceInfo, {
+        foreignKey: 'dealId',
+        as: 'resourceInfo'
       });
 
+      // A ResourceDealMapping belongs to a Deal
       ResourceDealMapping.belongsTo(models.Deal, {
         foreignKey: 'dealId',
         as: 'deal'
       });
 
+      // A ResourceDealMapping belongs to a Stage
       ResourceDealMapping.belongsTo(models.Stage, {
         foreignKey: 'dealStageId',
         as: 'stage'
       });
 
+      // A ResourceDealMapping belongs to a User (resource)
+      ResourceDealMapping.belongsTo(models.User, {
+        foreignKey: 'userId',
+        as: 'resource'
+      });
+
+      // A ResourceDealMapping can be created by a User (creator)
       ResourceDealMapping.belongsTo(models.User, {
         foreignKey: 'createdBy',
         as: 'creator'
       });
 
+      // A ResourceDealMapping can be modified by a User (modifier)
       ResourceDealMapping.belongsTo(models.User, {
         foreignKey: 'modifiedBy',
         as: 'modifier'

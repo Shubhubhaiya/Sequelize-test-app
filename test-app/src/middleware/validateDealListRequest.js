@@ -2,7 +2,7 @@ const apiResponse = require('../utils/apiResponse');
 const statusCodes = require('../config/statusCodes');
 const dealListRequest = require('../models/request/dealListRequest');
 
-// Middleware for validating the request body for create deal
+// Middleware for validating the request body for deal list
 const validateDealListSchema = (req, res, next) => {
   const { error } = dealListRequest.validate(req.body);
 

@@ -33,6 +33,12 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'modifiedBy',
         as: 'modifier'
       });
+
+      // A DealWiseResourceInfo has many ResourceDealMappings
+      DealWiseResourceInfo.hasMany(models.ResourceDealMapping, {
+        foreignKey: 'dealId',
+        as: 'resourceMappings'
+      });
     }
   }
 

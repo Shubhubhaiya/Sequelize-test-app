@@ -35,11 +35,16 @@ module.exports = (sequelize, DataTypes) => {
         as: 'therapeuticAreas'
       });
 
-      // A User can be associated with many Deals as a resource (Many-to-Many relationship through ResourceDealMapping)
-      User.belongsToMany(models.Deal, {
-        through: models.ResourceDealMapping,
+      // A User has many DealWiseResourceInfo records (a user can participate in multiple deals)
+      User.hasMany(models.DealWiseResourceInfo, {
+        foreignKey: 'resourceId',
+        as: 'dealWiseResourceInfo'
+      });
+
+      // A User can be mapped to multiple stages via ResourceDealMapping
+      User.hasMany(models.ResourceDealMapping, {
         foreignKey: 'userId',
-        as: 'resourceDeals'
+        as: 'resourceMappings'
       });
 
       // A User can be associated with many Deals as a lead (Many-to-Many relationship through DealLeadMapping)

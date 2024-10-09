@@ -6,14 +6,14 @@ const {
   Deal,
   LineFunction,
   DealLeadMapping,
-  sequelize
+  sequelize,
+  Sequelize
 } = require('../database/models');
 const apiResponse = require('../utils/apiResponse');
 const errorHandler = require('../utils/errorHandler');
 const CustomError = require('../utils/customError');
 const statusCodes = require('../config/statusCodes');
 const roles = require('../config/roles');
-const { Op } = require('sequelize');
 
 class ResourceService {
   async addResource(dealId, userId, resources) {
@@ -84,7 +84,7 @@ class ResourceService {
 
         // Search for the resource by email
         let user = await User.findOne({
-          where: { email: { [Op.iLike]: email } }
+          where: { email: { [Sequelize.Op.iLike]: email } }
         });
 
         if (!user) {
@@ -173,6 +173,201 @@ class ResourceService {
       return apiResponse.success(null, null, 'Resource(s) added successfully');
     } catch (error) {
       if (transaction) await transaction.rollback();
+      errorHandler.handle(error);
+    }
+  }
+
+  async getResourceList(query, body) {
+    const { userId, dealId, filters } = body;
+    const { page = 1, limit = 10 } = query;
+
+    try {
+      // Build where clause for resources mapped to a deal in ResourceDealMapping
+      const whereClause = { dealId, isDeleted: false }; // Ensure isDeleted is false in ResourceDealMapping
+
+      const include = [
+        {
+          model: DealWiseResourceInfo, // Join with DealWiseResourceInfo
+          as: 'resourceInfo', // Use the alias defined in the model
+          attributes: [
+            'vdrAccessRequested',
+            'webTrainingStatus',
+            'oneToOneDiscussion',
+            'optionalColumn',
+            'isCoreTeamMember',
+            'lineFunction',
+            'modifiedAt'
+          ], // Include necessary attributes from DealWiseResourceInfo
+          include: [
+            {
+              model: LineFunction,
+              as: 'associatedLineFunction',
+              attributes: ['id', 'name']
+            }
+          ],
+          required: true // Ensures we only return records where DealWiseResourceInfo exists
+        },
+        {
+          model: User,
+          as: 'resource',
+          attributes: [
+            'id',
+            'firstName',
+            'lastName',
+            'title',
+            'email',
+            'novartis521ID',
+            'siteCode'
+          ]
+        },
+        {
+          model: Stage,
+          as: 'stage',
+          attributes: ['id', 'name']
+        }
+      ];
+
+      // Apply filters
+      if (filters) {
+        // Filter by line function
+        if (filters.lineFunction && filters.lineFunction.length) {
+          whereClause['$resourceInfo.lineFunction$'] = {
+            [Sequelize.Op.in]: filters.lineFunction
+          };
+        }
+
+        // Filter by stages
+        if (filters.stage && filters.stage.length) {
+          whereClause.dealStageId = { [Sequelize.Op.in]: filters.stage };
+        }
+
+        // Filter by name (concatenation of firstName and lastName)
+        if (filters.name) {
+          include.push({
+            model: User,
+            as: 'resource',
+            where: {
+              [Sequelize.Op.or]: [
+                Sequelize.where(
+                  Sequelize.fn(
+                    'concat',
+                    Sequelize.col('firstName'),
+                    ' ',
+                    Sequelize.col('lastName')
+                  ),
+                  {
+                    [Sequelize.Op.iLike]: `%${filters.name}%`
+                  }
+                )
+              ]
+            }
+          });
+        }
+
+        // Filter by email
+        if (filters.email) {
+          whereClause['$resource.email$'] = {
+            [Sequelize.Op.iLike]: `%${filters.email}%`
+          };
+        }
+
+        // Filter by VDR Access Requested
+        if (filters.vdrAccessRequested !== undefined) {
+          whereClause['$resourceInfo.vdrAccessRequested$'] =
+            filters.vdrAccessRequested;
+        }
+
+        // Filter by Web Training Status
+        if (filters.webTrainingStatus && filters.webTrainingStatus.length) {
+          whereClause['$resourceInfo.webTrainingStatus$'] = {
+            [Sequelize.Op.in]: filters.webTrainingStatus
+          };
+        }
+
+        // Additional filters for title, novartis521ID, etc.
+        if (filters.title) {
+          whereClause['$resource.title$'] = {
+            [Sequelize.Op.iLike]: `%${filters.title}%`
+          };
+        }
+
+        if (filters.novartis521ID) {
+          whereClause['$resource.novartis521ID$'] = {
+            [Sequelize.Op.iLike]: `%${filters.novartis521ID}%`
+          };
+        }
+
+        if (filters.isCoreTeamMember !== undefined) {
+          whereClause['$resourceInfo.isCoreTeamMember$'] =
+            filters.isCoreTeamMember;
+        }
+      }
+
+      // Pagination and Sorting
+      const offset = (page - 1) * limit;
+      const order = [['modifiedAt', 'DESC']];
+
+      // Fetch resources from ResourceDealMapping as the primary source
+      const { count, rows } = await ResourceDealMapping.findAndCountAll({
+        where: whereClause,
+        include,
+        offset,
+        limit,
+        order,
+        distinct: true,
+        group: [
+          'ResourceDealMapping.userId',
+          'ResourceDealMapping.dealId',
+          'ResourceDealMapping.dealStageId',
+          'resource.id',
+          'resourceInfo.resourceId',
+          'resourceInfo.dealId',
+          'resourceInfo.vdrAccessRequested',
+          'resourceInfo.webTrainingStatus',
+          'resourceInfo.oneToOneDiscussion',
+          'resourceInfo.optionalColumn',
+          'resourceInfo.isCoreTeamMember',
+          'resourceInfo.lineFunction',
+          'resourceInfo.modifiedAt',
+          'resourceInfo->associatedLineFunction.id',
+          'resourceInfo->associatedLineFunction.name',
+          'stage.id',
+          'stage.name'
+        ]
+      });
+
+      // Build response data
+      const resources = rows.map((resourceDeal) => ({
+        id: resourceDeal.userId,
+        lineFunction: {
+          id: resourceDeal.resourceInfo.associatedLineFunction?.id,
+          name: resourceDeal.resourceInfo.associatedLineFunction?.name
+        },
+        name: `${resourceDeal.resource.firstName} ${resourceDeal.resource.lastName}`,
+        stage: {
+          id: resourceDeal.stage?.id,
+          name: resourceDeal.stage?.name
+        },
+        title: resourceDeal.resource.title,
+        email: resourceDeal.resource.email,
+        vdrAccessRequested: resourceDeal.resourceInfo.vdrAccessRequested,
+        webTrainingStatus: resourceDeal.resourceInfo.webTrainingStatus,
+        novartis521ID: resourceDeal.resource.novartis521ID,
+        isCoreTeamMember: resourceDeal.resourceInfo.isCoreTeamMember,
+        oneToOneDiscussion: resourceDeal.resourceInfo.oneToOneDiscussion,
+        optionalColumn: resourceDeal.resourceInfo.optionalColumn,
+        siteCode: resourceDeal.resource.siteCode
+      }));
+
+      // Return paginated response
+      return {
+        data: resources,
+        totalRecords: count.length, // count might return an array of grouped counts, ensure we return the right length
+        currentPage: page,
+        totalPages: Math.ceil(count.length / limit),
+        pageSize: limit
+      };
+    } catch (error) {
       errorHandler.handle(error);
     }
   }

@@ -16,7 +16,7 @@ const addResource = async (req, res, next) => {
         const pathArray = errDetail.path;
         if (pathArray[0] === 'resources' && typeof pathArray[1] === 'number') {
           const humanIndex = pathArray[1] + 1; // Convert 0-based index to 1-based index
-          return `Validation error in resource ${humanIndex}: ${errDetail.message.replace(`resources[${pathArray[1]}]`, `resource ${humanIndex}`)}`;
+          return `resource ${humanIndex}: ${errDetail.message.replace(`resources[${pathArray[1]}]`, `resource ${humanIndex}`)}`;
         }
         return `Validation error: ${errDetail.message}`;
       });
@@ -40,6 +40,16 @@ const addResource = async (req, res, next) => {
   }
 };
 
+const listResources = async (req, res, next) => {
+  try {
+    const result = await resourceService.getResourceList(req.query, req.body);
+    return res.status(statusCodes.SUCCESS).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
-  addResource
+  addResource,
+  listResources
 };
