@@ -1,27 +1,26 @@
 const statusCodes = require('../config/statusCodes');
+const { addResourceRequest } = require('../models/request/addResourceRequest');
 const resourceService = require('../services/resourceService');
 const apiResponse = require('../utils/apiResponse');
-const xlsx = require('xlsx');
 
 const addResource = async (req, res, next) => {
   try {
-    let records = [];
-    let isBatch = false;
     const userId = req.body.userId;
+    const dealId = req.body.dealId;
+    const resources = req.body.resources;
 
-    if (req.file) {
-      // If an Excel file is provided, read and parse it
-      const workbook = xlsx.read(req.file.buffer, { type: 'buffer' });
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      records = xlsx.utils.sheet_to_json(sheet);
-      isBatch = true;
-    } else {
-      // Otherwise, use the data from the request body for a single record
-      records = req.body;
+    // Perform validation for the request body
+    const { error } = addResourceRequest.validate(req.body);
+    if (error) {
+      return res.status(statusCodes.BAD_REQUEST).send(
+        apiResponse.badRequest({
+          message: `Validation error: ${error.details[0].message}`
+        })
+      );
     }
 
-    const result = await resourceService.addResource(records, userId, isBatch);
+    // Call the service to add the resource(s)
+    const result = await resourceService.addResource(resources, dealId, userId);
     return res.status(statusCodes.CREATED).json(result);
   } catch (error) {
     next(error);

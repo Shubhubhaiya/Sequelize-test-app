@@ -1,10 +1,10 @@
 const joi = require('joi');
 
-const addResourceRequest = joi.object({
-  dealId: joi.number().integer().strict().required().messages({
-    'any.required': 'Deal ID is required',
-    'number.base': 'Deal ID must be a number',
-    'number.integer': 'Deal ID must be an integer'
+const resourceSchema = joi.object({
+  email: joi.string().email().required().messages({
+    'any.required': 'Email is required',
+    'string.email': 'Email must be a valid email address',
+    'string.base': 'Email must be a string'
   }),
   lineFunction: joi.number().integer().strict().required().messages({
     'any.required': 'Line Function is required',
@@ -46,51 +46,24 @@ const addResourceRequest = joi.object({
   isCoreTeamMember: joi.boolean().required().messages({
     'any.required': 'Core Team Member field is required',
     'boolean.base': 'Core Team Member must be a boolean value'
+  })
+});
+
+const addResourceRequest = joi.object({
+  userId: joi.number().integer().strict().required().messages({
+    'any.required': 'User ID is required',
+    'number.base': 'User ID must be a number',
+    'number.integer': 'User ID must be an integer'
   }),
-  email: joi.string().email().required().messages({
-    'any.required': 'Email is required',
-    'string.email': 'Email must be a valid email address',
-    'string.base': 'Email must be a string'
+  dealId: joi.number().integer().strict().required().messages({
+    'any.required': 'Deal ID is required',
+    'number.base': 'Deal ID must be a number',
+    'number.integer': 'Deal ID must be an integer'
   }),
-  firstName: joi.string().trim().required().messages({
-    'any.required': 'First Name is required',
-    'string.base': 'First Name must be a string'
-  }),
-  lastName: joi.string().trim().required().messages({
-    'any.required': 'Last Name is required',
-    'string.base': 'Last Name must be a string'
-  }),
-  title: joi.string().trim().required().messages({
-    'any.required': 'Title is required',
-    'string.base': 'Title must be a string'
-  }),
-  phone: joi
-    .string()
-    .allow(null, '')
-    .pattern(
-      /^[+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,4}[-\s\.]?[0-9]{1,9}$/
-    )
-    .optional()
-    .messages({
-      'string.base': 'Phone must be a string',
-      'string.pattern.base': 'Phone number is invalid'
-    }),
-  countryCode: joi
-    .string()
-    .allow(null, '')
-    .pattern(/^[A-Z]{2}$/)
-    .optional()
-    .messages({
-      'string.base': 'Country Code must be a string',
-      'string.pattern.base': 'Country Code must be a valid ISO 2-letter code'
-    }),
-  siteCode: joi.string().trim().required().messages({
-    'any.required': 'Site Code is required',
-    'string.base': 'Site Code must be a string'
-  }),
-  novartis521ID: joi.string().trim().required().messages({
-    'any.required': 'Novartis 521 ID is required',
-    'string.base': 'Novartis 521 ID must be a string'
+  resources: joi.array().items(resourceSchema).min(1).required().messages({
+    'any.required': 'Resources are required',
+    'array.base': 'Resources must be an array of resource objects',
+    'array.min': 'At least one resource must be specified'
   })
 });
 
