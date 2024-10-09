@@ -380,7 +380,7 @@ class DealService extends baseService {
 
       return apiResponse.success(dealDetailResponse);
     } catch (error) {
-      errorHandler(error);
+      errorHandler.handle(error);
     }
   }
 
