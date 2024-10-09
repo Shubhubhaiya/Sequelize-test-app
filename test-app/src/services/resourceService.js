@@ -16,7 +16,7 @@ const roles = require('../config/roles');
 const { Op } = require('sequelize');
 
 class ResourceService {
-  async addResource(resources, dealId, userId) {
+  async addResource(dealId, userId, resources) {
     let transaction;
     try {
       transaction = await sequelize.transaction();
@@ -88,15 +88,20 @@ class ResourceService {
         });
 
         if (!user) {
-          // Insert new resource into User table if not found
-          user = await User.create(
-            {
-              email,
-              roleId: roles.RESOURCE,
-              createdBy: userId
-            },
-            { transaction }
+          throw new CustomError(
+            `Resource with this email {resource.email} not found!`,
+            statusCodes.BAD_REQUEST
           );
+          // Search user from active directory
+          // If found insert user record into our database
+          // user = await User.create(
+          //   {
+          //     email,
+          //     roleId: roles.RESOURCE,
+          //     createdBy: userId
+          //   },
+          //   { transaction }
+          // );
         }
 
         // Insert or update resource data in DealWiseResourceInfo table
@@ -107,12 +112,12 @@ class ResourceService {
         if (existingResourceInfo) {
           await existingResourceInfo.update(
             {
-              lineFunction,
               vdrAccessRequested,
               webTrainingStatus,
               oneToOneDiscussion,
               optionalColumn,
               isCoreTeamMember,
+              lineFunction,
               modifiedBy: userId
             },
             { transaction }
@@ -128,7 +133,8 @@ class ResourceService {
               oneToOneDiscussion,
               optionalColumn,
               isCoreTeamMember,
-              createdBy: userId
+              createdBy: userId,
+              modifiedBy: userId
             },
             { transaction }
           );
@@ -143,7 +149,7 @@ class ResourceService {
           if (existingMapping) {
             if (existingMapping.isDeleted) {
               await existingMapping.update(
-                { isDeleted: false },
+                { isDeleted: false, modifiedBy: userId },
                 { transaction }
               );
             }
@@ -153,7 +159,9 @@ class ResourceService {
                 userId: user.id,
                 dealId,
                 dealStageId: stageId,
-                isDeleted: false
+                isDeleted: false,
+                createdBy: userId,
+                modifiedBy: userId
               },
               { transaction }
             );
