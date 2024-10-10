@@ -42,7 +42,11 @@ const addResource = async (req, res, next) => {
 
 const listResources = async (req, res, next) => {
   try {
-    const result = await resourceService.getResourceList(req.query, req.body);
+    const { page = 1, limit = 10 } = req.body;
+    const result = await resourceService.getResourceList(
+      { page, limit },
+      req.body
+    );
     return res.status(statusCodes.SUCCESS).json(result);
   } catch (error) {
     next(error);

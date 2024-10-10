@@ -14,8 +14,12 @@ const errorHandler = require('../utils/errorHandler');
 const CustomError = require('../utils/customError');
 const statusCodes = require('../config/statusCodes');
 const roles = require('../config/roles');
+const baseService = require('./baseService');
 
-class ResourceService {
+class ResourceService extends baseService {
+  constructor() {
+    super(ResourceDealMapping);
+  }
   async addResource(dealId, userId, resources) {
     let transaction;
     try {
@@ -182,13 +186,25 @@ class ResourceService {
     const { page = 1, limit = 10 } = query;
 
     try {
-      // Build where clause for resources mapped to a deal in ResourceDealMapping
-      const whereClause = { dealId, isDeleted: false }; // Ensure isDeleted is false in ResourceDealMapping
+      const offset = (page - 1) * limit;
 
+      // Build where clause for ResourceDealMapping
+      const whereClause = { isDeleted: false };
+
+      // Build raw SQL where conditions for the count query
+      let whereConditions = `"ResourceDealMapping"."isDeleted" = false`;
+
+      // Apply dealId filter if provided
+      if (dealId) {
+        whereClause.dealId = dealId;
+        whereConditions += ` AND "ResourceDealMapping"."dealId" = ${dealId}`;
+      }
+
+      // Initial includes
       const include = [
         {
-          model: DealWiseResourceInfo, // Join with DealWiseResourceInfo
-          as: 'resourceInfo', // Use the alias defined in the model
+          model: DealWiseResourceInfo,
+          as: 'resourceInfo',
           attributes: [
             'vdrAccessRequested',
             'webTrainingStatus',
@@ -197,7 +213,7 @@ class ResourceService {
             'isCoreTeamMember',
             'lineFunction',
             'modifiedAt'
-          ], // Include necessary attributes from DealWiseResourceInfo
+          ],
           include: [
             {
               model: LineFunction,
@@ -205,7 +221,7 @@ class ResourceService {
               attributes: ['id', 'name']
             }
           ],
-          required: true // Ensures we only return records where DealWiseResourceInfo exists
+          required: true
         },
         {
           model: User,
@@ -231,144 +247,264 @@ class ResourceService {
       if (filters) {
         // Filter by line function
         if (filters.lineFunction && filters.lineFunction.length) {
-          whereClause['$resourceInfo.lineFunction$'] = {
-            [Sequelize.Op.in]: filters.lineFunction
-          };
+          const resourceInfoInclude = include.find(
+            (inc) => inc.as === 'resourceInfo'
+          );
+          if (resourceInfoInclude) {
+            resourceInfoInclude.where = {
+              ...resourceInfoInclude.where,
+              lineFunction: {
+                [Op.in]: filters.lineFunction
+              }
+            };
+            resourceInfoInclude.required = true;
+          }
+
+          // Add to raw whereConditions for count query
+          whereConditions += ` AND "resourceInfo"."lineFunction" IN (${filters.lineFunction.join(',')})`;
         }
 
         // Filter by stages
         if (filters.stage && filters.stage.length) {
-          whereClause.dealStageId = { [Sequelize.Op.in]: filters.stage };
+          whereClause.dealStageId = { [Op.in]: filters.stage };
+          // Add to raw whereConditions for count query
+          whereConditions += ` AND "ResourceDealMapping"."dealStageId" IN (${filters.stage.join(',')})`;
         }
 
-        // Filter by name (concatenation of firstName and lastName)
+        // Filter by name
         if (filters.name) {
-          include.push({
-            model: User,
-            as: 'resource',
-            where: {
-              [Sequelize.Op.or]: [
+          const nameFilter = filters.name.replace(/'/g, "''"); // Escape single quotes
+          const resourceInclude = include.find((inc) => inc.as === 'resource');
+          if (resourceInclude) {
+            resourceInclude.where = {
+              ...resourceInclude.where,
+              [Op.or]: [
+                {
+                  firstName: { [Op.iLike]: `%${filters.name}%` }
+                },
+                {
+                  lastName: { [Op.iLike]: `%${filters.name}%` }
+                },
                 Sequelize.where(
                   Sequelize.fn(
                     'concat',
-                    Sequelize.col('firstName'),
+                    Sequelize.col('resource.firstName'),
                     ' ',
-                    Sequelize.col('lastName')
+                    Sequelize.col('resource.lastName')
                   ),
                   {
-                    [Sequelize.Op.iLike]: `%${filters.name}%`
+                    [Op.iLike]: `%${filters.name}%`
                   }
                 )
               ]
-            }
-          });
+            };
+            resourceInclude.required = true;
+          }
+
+          // Add to raw whereConditions for count query
+          whereConditions += ` AND (("resource"."firstName" ILIKE '%${nameFilter}%') OR ("resource"."lastName" ILIKE '%${nameFilter}%') OR ("resource"."firstName" || ' ' || "resource"."lastName" ILIKE '%${nameFilter}%'))`;
         }
 
         // Filter by email
         if (filters.email) {
-          whereClause['$resource.email$'] = {
-            [Sequelize.Op.iLike]: `%${filters.email}%`
-          };
+          const emailFilter = filters.email.replace(/'/g, "''"); // Escape single quotes
+          const resourceInclude = include.find((inc) => inc.as === 'resource');
+          if (resourceInclude) {
+            resourceInclude.where = {
+              ...resourceInclude.where,
+              email: { [Op.iLike]: `%${filters.email}%` }
+            };
+            resourceInclude.required = true;
+          }
+
+          // Add to raw whereConditions for count query
+          whereConditions += ` AND "resource"."email" ILIKE '%${emailFilter}%'`;
         }
 
         // Filter by VDR Access Requested
         if (filters.vdrAccessRequested !== undefined) {
-          whereClause['$resourceInfo.vdrAccessRequested$'] =
-            filters.vdrAccessRequested;
+          const resourceInfoInclude = include.find(
+            (inc) => inc.as === 'resourceInfo'
+          );
+          if (resourceInfoInclude) {
+            resourceInfoInclude.where = {
+              ...resourceInfoInclude.where,
+              vdrAccessRequested: filters.vdrAccessRequested
+            };
+            resourceInfoInclude.required = true;
+          }
+
+          // Add to raw whereConditions for count query
+          whereConditions += ` AND "resourceInfo"."vdrAccessRequested" = ${filters.vdrAccessRequested}`;
         }
 
         // Filter by Web Training Status
         if (filters.webTrainingStatus && filters.webTrainingStatus.length) {
-          whereClause['$resourceInfo.webTrainingStatus$'] = {
-            [Sequelize.Op.in]: filters.webTrainingStatus
-          };
+          const resourceInfoInclude = include.find(
+            (inc) => inc.as === 'resourceInfo'
+          );
+          if (resourceInfoInclude) {
+            resourceInfoInclude.where = {
+              ...resourceInfoInclude.where,
+              webTrainingStatus: {
+                [Op.in]: filters.webTrainingStatus
+              }
+            };
+            resourceInfoInclude.required = true;
+          }
+
+          // Add to raw whereConditions for count query
+          const statuses = filters.webTrainingStatus.map(
+            (status) => `'${status.replace(/'/g, "''")}'`
+          );
+          whereConditions += ` AND "resourceInfo"."webTrainingStatus" IN (${statuses.join(',')})`;
         }
 
         // Additional filters for title, novartis521ID, etc.
         if (filters.title) {
-          whereClause['$resource.title$'] = {
-            [Sequelize.Op.iLike]: `%${filters.title}%`
-          };
+          const titleFilter = filters.title.replace(/'/g, "''"); // Escape single quotes
+          const resourceInclude = include.find((inc) => inc.as === 'resource');
+          if (resourceInclude) {
+            resourceInclude.where = {
+              ...resourceInclude.where,
+              title: { [Op.iLike]: `%${filters.title}%` }
+            };
+            resourceInclude.required = true;
+          }
+
+          // Add to raw whereConditions for count query
+          whereConditions += ` AND "resource"."title" ILIKE '%${titleFilter}%'`;
         }
 
         if (filters.novartis521ID) {
-          whereClause['$resource.novartis521ID$'] = {
-            [Sequelize.Op.iLike]: `%${filters.novartis521ID}%`
-          };
+          const idFilter = filters.novartis521ID.replace(/'/g, "''"); // Escape single quotes
+          const resourceInclude = include.find((inc) => inc.as === 'resource');
+          if (resourceInclude) {
+            resourceInclude.where = {
+              ...resourceInclude.where,
+              novartis521ID: {
+                [Op.iLike]: `%${filters.novartis521ID}%`
+              }
+            };
+            resourceInclude.required = true;
+          }
+
+          // Add to raw whereConditions for count query
+          whereConditions += ` AND "resource"."novartis521ID" ILIKE '%${idFilter}%'`;
         }
 
         if (filters.isCoreTeamMember !== undefined) {
-          whereClause['$resourceInfo.isCoreTeamMember$'] =
-            filters.isCoreTeamMember;
+          const resourceInfoInclude = include.find(
+            (inc) => inc.as === 'resourceInfo'
+          );
+          if (resourceInfoInclude) {
+            resourceInfoInclude.where = {
+              ...resourceInfoInclude.where,
+              isCoreTeamMember: filters.isCoreTeamMember
+            };
+            resourceInfoInclude.required = true;
+          }
+
+          // Add to raw whereConditions for count query
+          whereConditions += ` AND "resourceInfo"."isCoreTeamMember" = ${filters.isCoreTeamMember}`;
         }
       }
 
-      // Pagination and Sorting
-      const offset = (page - 1) * limit;
-      const order = [['modifiedAt', 'DESC']];
+      // Sorting
+      const order = [
+        ['userId', 'ASC'],
+        ['dealId', 'ASC'],
+        ['dealStageId', 'ASC'],
+        ['modifiedAt', 'DESC']
+      ];
 
-      // Fetch resources from ResourceDealMapping as the primary source
-      const { count, rows } = await ResourceDealMapping.findAndCountAll({
+      // Data Query
+      const data = await ResourceDealMapping.findAll({
         where: whereClause,
         include,
-        offset,
-        limit,
+        attributes: [
+          Sequelize.literal(
+            `DISTINCT ON("ResourceDealMapping"."userId", "ResourceDealMapping"."dealId", "ResourceDealMapping"."dealStageId") "ResourceDealMapping".*`
+          ),
+          'userId',
+          'dealId',
+          'dealStageId',
+          'createdBy',
+          'modifiedBy',
+          'isDeleted',
+          'createdAt',
+          'modifiedAt'
+        ],
         order,
-        distinct: true,
-        group: [
-          'ResourceDealMapping.userId',
-          'ResourceDealMapping.dealId',
-          'ResourceDealMapping.dealStageId',
-          'resource.id',
-          'resourceInfo.resourceId',
-          'resourceInfo.dealId',
-          'resourceInfo.vdrAccessRequested',
-          'resourceInfo.webTrainingStatus',
-          'resourceInfo.oneToOneDiscussion',
-          'resourceInfo.optionalColumn',
-          'resourceInfo.isCoreTeamMember',
-          'resourceInfo.lineFunction',
-          'resourceInfo.modifiedAt',
-          'resourceInfo->associatedLineFunction.id',
-          'resourceInfo->associatedLineFunction.name',
-          'stage.id',
-          'stage.name'
-        ]
+        limit,
+        offset,
+        raw: true,
+        nest: true
       });
 
       // Build response data
-      const resources = rows.map((resourceDeal) => ({
+      const resources = data.map((resourceDeal) => ({
         id: resourceDeal.userId,
         lineFunction: {
-          id: resourceDeal.resourceInfo.associatedLineFunction?.id,
-          name: resourceDeal.resourceInfo.associatedLineFunction?.name
+          id: resourceDeal.resourceInfo?.associatedLineFunction?.id,
+          name: resourceDeal.resourceInfo?.associatedLineFunction?.name
         },
-        name: `${resourceDeal.resource.firstName} ${resourceDeal.resource.lastName}`,
+        name: `${resourceDeal.resource?.firstName} ${resourceDeal.resource?.lastName}`,
         stage: {
           id: resourceDeal.stage?.id,
           name: resourceDeal.stage?.name
         },
-        title: resourceDeal.resource.title,
-        email: resourceDeal.resource.email,
-        vdrAccessRequested: resourceDeal.resourceInfo.vdrAccessRequested,
-        webTrainingStatus: resourceDeal.resourceInfo.webTrainingStatus,
-        novartis521ID: resourceDeal.resource.novartis521ID,
-        isCoreTeamMember: resourceDeal.resourceInfo.isCoreTeamMember,
-        oneToOneDiscussion: resourceDeal.resourceInfo.oneToOneDiscussion,
-        optionalColumn: resourceDeal.resourceInfo.optionalColumn,
-        siteCode: resourceDeal.resource.siteCode
+        title: resourceDeal.resource?.title,
+        email: resourceDeal.resource?.email,
+        vdrAccessRequested: resourceDeal.resourceInfo?.vdrAccessRequested,
+        webTrainingStatus: resourceDeal.resourceInfo?.webTrainingStatus,
+        novartis521ID: resourceDeal.resource?.novartis521ID,
+        isCoreTeamMember: resourceDeal.resourceInfo?.isCoreTeamMember,
+        oneToOneDiscussion: resourceDeal.resourceInfo?.oneToOneDiscussion,
+        optionalColumn: resourceDeal.resourceInfo?.optionalColumn,
+        siteCode: resourceDeal.resource?.siteCode
       }));
 
-      // Return paginated response
-      return {
-        data: resources,
-        totalRecords: count.length, // count might return an array of grouped counts, ensure we return the right length
+      // Count Query
+      const countQuery = `
+        SELECT COUNT(*) FROM (
+          SELECT DISTINCT "ResourceDealMapping"."userId", "ResourceDealMapping"."dealId", "ResourceDealMapping"."dealStageId"
+          FROM "ResourceDealMapping"
+          INNER JOIN "DealWiseResourceInfo" AS "resourceInfo"
+            ON "ResourceDealMapping"."dealId" = "resourceInfo"."dealId"
+          LEFT OUTER JOIN "LineFunctions" AS "associatedLineFunction"
+            ON "resourceInfo"."lineFunction" = "associatedLineFunction"."id"
+          LEFT OUTER JOIN "Users" AS "resource"
+            ON "ResourceDealMapping"."userId" = "resource"."id"
+          LEFT OUTER JOIN "Stages" AS "stage"
+            ON "ResourceDealMapping"."dealStageId" = "stage"."id"
+          WHERE ${whereConditions}
+        ) AS subquery;
+      `;
+
+      const countResult = await sequelize.query(countQuery, {
+        type: Sequelize.QueryTypes.SELECT
+      });
+
+      const totalRecords = parseInt(countResult[0].count, 10);
+
+      // Pagination
+      const totalPages = Math.ceil(totalRecords / limit);
+      const pagination = {
+        totalRecords,
         currentPage: page,
-        totalPages: Math.ceil(count.length / limit),
+        totalPages,
         pageSize: limit
       };
+
+      // Return the response
+      return {
+        data: resources,
+        pagination
+      };
     } catch (error) {
-      errorHandler.handle(error);
+      console.error(error);
+      errorHandler.handle(error); // Replace with your actual error handler
     }
   }
 }
