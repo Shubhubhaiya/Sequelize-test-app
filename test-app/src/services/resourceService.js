@@ -322,7 +322,10 @@ class ResourceService extends baseService {
         }
 
         // Filter by VDR Access Requested
-        if (filters.vdrAccessRequested !== undefined) {
+        if (
+          filters.vdrAccessRequested === true ||
+          filters.vdrAccessRequested === false
+        ) {
           const resourceInfoInclude = include.find(
             (inc) => inc.as === 'resourceInfo'
           );
@@ -393,7 +396,10 @@ class ResourceService extends baseService {
           whereConditions += ` AND "resource"."novartis521ID" ILIKE '%${idFilter}%'`;
         }
 
-        if (filters.isCoreTeamMember !== undefined) {
+        if (
+          filters.isCoreTeamMember === true ||
+          filters.isCoreTeamMember === false
+        ) {
           const resourceInfoInclude = include.find(
             (inc) => inc.as === 'resourceInfo'
           );

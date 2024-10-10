@@ -1,26 +1,29 @@
-const joi = require('joi');
+const Joi = require('joi');
 
-const filtersSchema = joi.object({
-  lineFunction: joi.array().items(joi.number().integer()).optional(),
-  stage: joi.array().items(joi.number().integer()).optional(),
-  name: joi.string().empty('').allow(null).optional(),
-  title: joi.string().empty('').allow(null).optional(),
-  email: joi.string().empty('').allow(null).optional(),
-  vdrAccessRequested: joi.boolean().optional(),
-  webTrainingStatus: joi.array().items(joi.string()).optional(),
-  novartis521ID: joi.string().empty('').allow(null).optional(),
-  isCoreTeamMember: joi.boolean().optional(),
-  oneToOneDiscussion: joi.string().empty('').allow(null).optional(),
-  optionalColumn: joi.string().empty('').allow(null).optional(),
-  siteCode: joi.string().empty('').allow(null).optional()
+const filtersSchema = Joi.object({
+  lineFunction: Joi.array()
+    .items(Joi.number().integer())
+    .allow(null)
+    .optional(),
+  stage: Joi.array().items(Joi.number().integer()).allow(null).optional(),
+  name: Joi.string().empty('').allow(null).optional(),
+  title: Joi.string().empty('').allow(null).optional(),
+  email: Joi.string().empty('').allow(null).optional(),
+  vdrAccessRequested: Joi.boolean().allow(null).optional(),
+  webTrainingStatus: Joi.array().items(Joi.string()).allow(null).optional(),
+  novartis521ID: Joi.string().empty('').allow(null).optional(),
+  isCoreTeamMember: Joi.boolean().allow(null).optional(),
+  oneToOneDiscussion: Joi.string().empty('').allow(null).optional(),
+  optionalColumn: Joi.string().empty('').allow(null).optional(),
+  siteCode: Joi.string().empty('').allow(null).optional()
 });
 
-const listResourcesRequest = joi.object({
-  userId: joi.number().integer().required(),
-  dealId: joi.number().integer().required(),
-  filters: filtersSchema.optional(),
-  page: joi.number().integer().min(1).default(1),
-  limit: joi.number().integer().min(1).default(10)
+const listResourcesRequest = Joi.object({
+  userId: Joi.number().integer().required(),
+  dealId: Joi.number().integer().required(),
+  filters: filtersSchema.allow(null).optional(),
+  page: Joi.number().integer().min(1).default(1),
+  limit: Joi.number().integer().min(1).default(10)
 });
 
 module.exports = listResourcesRequest;
