@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: API documentation for S&G Mercator resource management.
 servers:
-  - url: 'http://localhost:5001/api'
+  - url: 'http://localhost:5000/api'
     description: Development server
 
 paths:
@@ -493,86 +493,10 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                userId:
-                  type: integer
-                  example: 1
-                  description: The ID of the user requesting the resource list.
-                dealId:
-                  type: integer
-                  example: 2
-                  description: The ID of the deal for which resources are listed.
-                filters:
-                  type: object
-                  description: Optional filters for the resource list
-                  properties:
-                    lineFunction:
-                      type: array
-                      items:
-                        type: integer
-                      example: [1, 2, 3]
-                      description: Filter resources by line function IDs.
-                    stage:
-                      type: array
-                      items:
-                        type: integer
-                      example: [1, 2, 3]
-                      description: Filter resources by stage IDs.
-                    name:
-                      type: string
-                      example: 'John Doe'
-                      description: Search by resource's first and last name.
-                    title:
-                      type: string
-                      example: 'Software Engineer'
-                      description: Filter resources by title.
-                    email:
-                      type: string
-                      example: 'john.doe@example.com'
-                      description: Filter resources by email.
-                    vdrAccessRequested:
-                      type: boolean
-                      example: true
-                      description: Filter resources by VDR access request status.
-                    webTrainingStatus:
-                      type: array
-                      items:
-                        type: string
-                        enum: [Not Started, In-progress, completed]
-                      example: ['In-progress', 'completed']
-                      description: Filter resources by web training status.
-                    novartis521ID:
-                      type: string
-                      example: 'novartis123'
-                      description: Filter resources by Novartis ID.
-                    isCoreTeamMember:
-                      type: boolean
-                      example: true
-                      description: Filter resources by core team membership status.
-                    oneToOneDiscussion:
-                      type: string
-                      example: 'Notes from discussion.'
-                      description: Filter resources by notes from one-to-one discussions.
-                    optionalColumn:
-                      type: string
-                      example: 'Additional notes.'
-                      description: Filter resources by optional column data.
-                    siteCode:
-                      type: string
-                      example: 'site123'
-                      description: Filter resources by site code.
-                page:
-                  type: integer
-                  example: 1
-                  description: Page number for pagination.
-                limit:
-                  type: integer
-                  example: 10
-                  description: Number of records per page for pagination.
+              $ref: '#/components/schemas/ResourceListRequest'
       responses:
         200:
-          description: A list of resources.
+          description: A list of resources with pagination metadata.
           content:
             application/json:
               schema:
@@ -1020,6 +944,89 @@ components:
           example: true
           description: Specifies whether the resource is a core team member.
 
+    ResourceListRequest:
+      type: object
+      required:
+        - userId
+        - dealId
+      properties:
+        userId:
+          type: integer
+          example: 1
+          description: The ID of the user requesting the resource list.
+        dealId:
+          type: integer
+          example: 2
+          description: The ID of the deal for which resources are listed.
+        filters:
+          type: object
+          description: Optional filters for the resource list.
+          properties:
+            lineFunction:
+              type: array
+              items:
+                type: integer
+              example: [1, 2, 3]
+              description: Filter resources by line function IDs.
+            stage:
+              type: array
+              items:
+                type: integer
+              example: [1, 2, 3]
+              description: Filter resources by stage IDs.
+            name:
+              type: string
+              example: 'John Doe'
+              description: Search by resource's first and last name.
+            title:
+              type: string
+              example: 'Software Engineer'
+              description: Filter resources by title.
+            email:
+              type: string
+              example: 'john.doe@example.com'
+              description: Filter resources by email.
+            vdrAccessRequested:
+              type: boolean
+              example: true
+              description: Filter resources by VDR access request status.
+            webTrainingStatus:
+              type: array
+              items:
+                type: string
+                enum: [Not Started, In-progress, completed]
+              example: ['In-progress', 'completed']
+              description: Filter resources by web training status.
+            novartis521ID:
+              type: string
+              example: 'novartis123'
+              description: Filter resources by Novartis ID.
+            isCoreTeamMember:
+              type: boolean
+              example: true
+              description: Filter resources by core team membership status.
+            oneToOneDiscussion:
+              type: string
+              example: 'Notes from discussion.'
+              description: Filter resources by notes from one-to-one discussions.
+            optionalColumn:
+              type: string
+              example: 'Additional notes.'
+              description: Filter resources by optional column data.
+            siteCode:
+              type: string
+              example: 'site123'
+              description: Filter resources by site code.
+        page:
+          type: integer
+          example: 1
+          description: Page number for pagination.
+        limit:
+          type: integer
+          example: 10
+          description: Number of records per page for pagination.
+      additionalProperties: false
+
     ResourcesListResponse:
       type: object
       properties:
@@ -1114,19 +1121,3 @@ components:
           type: string
           example: 'site123'
           description: Site code of the resource.
-        modifiedAt:
-          type: string
-          format: date
-          example: '2024-09-30'
-          description: Last modified date (in UTC).
-        modifiedBy:
-          type: object
-          properties:
-            id:
-              type: integer
-              example: 1
-              description: ID of the user who modified the resource.
-            name:
-              type: string
-              example: 'Jane Doe'
-              description: Name of the user who modified the resource.
