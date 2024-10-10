@@ -191,13 +191,17 @@ class ResourceService extends baseService {
       // Build where clause for ResourceDealMapping
       const whereClause = { isDeleted: false };
 
-      // Build raw SQL where conditions for the count query
-      let whereConditions = `"ResourceDealMapping"."isDeleted" = false`;
+      // Initialize replacements object for parameterized queries
+      const replacements = {};
+
+      // Initialize whereConditions as an array
+      const whereConditions = [`"ResourceDealMapping"."isDeleted" = false`];
 
       // Apply dealId filter if provided
       if (dealId) {
         whereClause.dealId = dealId;
-        whereConditions += ` AND "ResourceDealMapping"."dealId" = ${dealId}`;
+        whereConditions.push(`"ResourceDealMapping"."dealId" = :dealId`);
+        replacements.dealId = dealId;
       }
 
       // Initial includes
@@ -243,10 +247,10 @@ class ResourceService extends baseService {
         }
       ];
 
-      // Apply filters
+      // Apply filters if filters object is provided
       if (filters) {
         // Filter by line function
-        if (filters.lineFunction && filters.lineFunction.length) {
+        if (filters.lineFunction && filters.lineFunction.length > 0) {
           const resourceInfoInclude = include.find(
             (inc) => inc.as === 'resourceInfo'
           );
@@ -260,71 +264,90 @@ class ResourceService extends baseService {
             resourceInfoInclude.required = true;
           }
 
-          // Add to raw whereConditions for count query
-          whereConditions += ` AND "resourceInfo"."lineFunction" IN (${filters.lineFunction.join(',')})`;
+          // Add to whereConditions for count query
+          whereConditions.push(
+            `"resourceInfo"."lineFunction" IN (:lineFunctions)`
+          );
+          replacements.lineFunctions = filters.lineFunction;
         }
 
         // Filter by stages
-        if (filters.stage && filters.stage.length) {
+        if (filters.stage && filters.stage.length > 0) {
           whereClause.dealStageId = { [Sequelize.Op.in]: filters.stage };
-          // Add to raw whereConditions for count query
-          whereConditions += ` AND "ResourceDealMapping"."dealStageId" IN (${filters.stage.join(',')})`;
+
+          // Add to whereConditions for count query
+          whereConditions.push(
+            `"ResourceDealMapping"."dealStageId" IN (:stages)`
+          );
+          replacements.stages = filters.stage;
         }
 
         // Filter by name
         if (filters.name) {
-          const nameFilter = filters.name.replace(/'/g, "''"); // Escape single quotes
-          const resourceInclude = include.find((inc) => inc.as === 'resource');
-          if (resourceInclude) {
-            resourceInclude.where = {
-              ...resourceInclude.where,
-              [Sequelize.Op.or]: [
-                {
-                  firstName: { [Sequelize.Op.iLike]: `%${filters.name}%` }
-                },
-                {
-                  lastName: { [Sequelize.Op.iLike]: `%${filters.name}%` }
-                },
-                Sequelize.where(
-                  Sequelize.fn(
-                    'concat',
-                    Sequelize.col('resource.firstName'),
-                    ' ',
-                    Sequelize.col('resource.lastName')
-                  ),
+          const nameFilter = filters.name;
+          if (nameFilter !== '') {
+            const resourceInclude = include.find(
+              (inc) => inc.as === 'resource'
+            );
+            if (resourceInclude) {
+              resourceInclude.where = {
+                ...resourceInclude.where,
+                [Sequelize.Op.or]: [
                   {
-                    [Sequelize.Op.iLike]: `%${filters.name}%`
-                  }
-                )
-              ]
-            };
-            resourceInclude.required = true;
-          }
+                    firstName: { [Sequelize.Op.iLike]: `%${nameFilter}%` }
+                  },
+                  {
+                    lastName: { [Sequelize.Op.iLike]: `%${nameFilter}%` }
+                  },
+                  Sequelize.where(
+                    Sequelize.fn(
+                      'concat',
+                      Sequelize.col('resource.firstName'),
+                      ' ',
+                      Sequelize.col('resource.lastName')
+                    ),
+                    {
+                      [Sequelize.Op.iLike]: `%${nameFilter}%`
+                    }
+                  )
+                ]
+              };
+              resourceInclude.required = true;
+            }
 
-          // Add to raw whereConditions for count query
-          whereConditions += ` AND (("resource"."firstName" ILIKE '%${nameFilter}%') OR ("resource"."lastName" ILIKE '%${nameFilter}%') OR ("resource"."firstName" || ' ' || "resource"."lastName" ILIKE '%${nameFilter}%'))`;
+            // Add to whereConditions for count query
+            whereConditions.push(
+              `(("resource"."firstName" ILIKE :nameFilter) OR ("resource"."lastName" ILIKE :nameFilter) OR ("resource"."firstName" || ' ' || "resource"."lastName" ILIKE :nameFilter))`
+            );
+            replacements.nameFilter = `%${nameFilter}%`;
+          }
         }
 
         // Filter by email
         if (filters.email) {
-          const emailFilter = filters.email.replace(/'/g, "''"); // Escape single quotes
-          const resourceInclude = include.find((inc) => inc.as === 'resource');
-          if (resourceInclude) {
-            resourceInclude.where = {
-              ...resourceInclude.where,
-              email: { [Sequelize.Op.iLike]: `%${filters.email}%` }
-            };
-            resourceInclude.required = true;
-          }
+          const emailFilter = filters.email;
+          if (emailFilter !== '') {
+            const resourceInclude = include.find(
+              (inc) => inc.as === 'resource'
+            );
+            if (resourceInclude) {
+              resourceInclude.where = {
+                ...resourceInclude.where,
+                email: { [Sequelize.Op.iLike]: `%${emailFilter}%` }
+              };
+              resourceInclude.required = true;
+            }
 
-          // Add to raw whereConditions for count query
-          whereConditions += ` AND "resource"."email" ILIKE '%${emailFilter}%'`;
+            // Add to whereConditions for count query
+            whereConditions.push(`"resource"."email" ILIKE :emailFilter`);
+            replacements.emailFilter = `%${emailFilter}%`;
+          }
         }
 
-        // Filter by VDR Access Requested
+        // Filter by VDR Access Requested (boolean)
         if (
-          filters.vdrAccessRequested === true ||
-          filters.vdrAccessRequested === false
+          filters.vdrAccessRequested !== null &&
+          filters.vdrAccessRequested !== undefined
         ) {
           const resourceInfoInclude = include.find(
             (inc) => inc.as === 'resourceInfo'
@@ -337,12 +360,15 @@ class ResourceService extends baseService {
             resourceInfoInclude.required = true;
           }
 
-          // Add to raw whereConditions for count query
-          whereConditions += ` AND "resourceInfo"."vdrAccessRequested" = ${filters.vdrAccessRequested}`;
+          // Add to whereConditions for count query
+          whereConditions.push(
+            `"resourceInfo"."vdrAccessRequested" = :vdrAccessRequested`
+          );
+          replacements.vdrAccessRequested = filters.vdrAccessRequested;
         }
 
         // Filter by Web Training Status
-        if (filters.webTrainingStatus && filters.webTrainingStatus.length) {
+        if (filters.webTrainingStatus && filters.webTrainingStatus.length > 0) {
           const resourceInfoInclude = include.find(
             (inc) => inc.as === 'resourceInfo'
           );
@@ -356,49 +382,62 @@ class ResourceService extends baseService {
             resourceInfoInclude.required = true;
           }
 
-          // Add to raw whereConditions for count query
-          const statuses = filters.webTrainingStatus.map(
-            (status) => `'${status.replace(/'/g, "''")}'`
+          // Add to whereConditions for count query
+          whereConditions.push(
+            `"resourceInfo"."webTrainingStatus" IN (:webTrainingStatuses)`
           );
-          whereConditions += ` AND "resourceInfo"."webTrainingStatus" IN (${statuses.join(',')})`;
+          replacements.webTrainingStatuses = filters.webTrainingStatus;
         }
 
         // Additional filters for title, novartis521ID, etc.
         if (filters.title) {
-          const titleFilter = filters.title.replace(/'/g, "''"); // Escape single quotes
-          const resourceInclude = include.find((inc) => inc.as === 'resource');
-          if (resourceInclude) {
-            resourceInclude.where = {
-              ...resourceInclude.where,
-              title: { [Sequelize.Op.iLike]: `%${filters.title}%` }
-            };
-            resourceInclude.required = true;
-          }
+          const titleFilter = filters.title;
+          if (titleFilter !== '') {
+            const resourceInclude = include.find(
+              (inc) => inc.as === 'resource'
+            );
+            if (resourceInclude) {
+              resourceInclude.where = {
+                ...resourceInclude.where,
+                title: { [Sequelize.Op.iLike]: `%${titleFilter}%` }
+              };
+              resourceInclude.required = true;
+            }
 
-          // Add to raw whereConditions for count query
-          whereConditions += ` AND "resource"."title" ILIKE '%${titleFilter}%'`;
+            // Add to whereConditions for count query
+            whereConditions.push(`"resource"."title" ILIKE :titleFilter`);
+            replacements.titleFilter = `%${titleFilter}%`;
+          }
         }
 
         if (filters.novartis521ID) {
-          const idFilter = filters.novartis521ID.replace(/'/g, "''"); // Escape single quotes
-          const resourceInclude = include.find((inc) => inc.as === 'resource');
-          if (resourceInclude) {
-            resourceInclude.where = {
-              ...resourceInclude.where,
-              novartis521ID: {
-                [Sequelize.Op.iLike]: `%${filters.novartis521ID}%`
-              }
-            };
-            resourceInclude.required = true;
-          }
+          const idFilter = filters.novartis521ID;
+          if (idFilter !== '') {
+            const resourceInclude = include.find(
+              (inc) => inc.as === 'resource'
+            );
+            if (resourceInclude) {
+              resourceInclude.where = {
+                ...resourceInclude.where,
+                novartis521ID: {
+                  [Sequelize.Op.iLike]: `%${idFilter}%`
+                }
+              };
+              resourceInclude.required = true;
+            }
 
-          // Add to raw whereConditions for count query
-          whereConditions += ` AND "resource"."novartis521ID" ILIKE '%${idFilter}%'`;
+            // Add to whereConditions for count query
+            whereConditions.push(
+              `"resource"."novartis521ID" ILIKE :novartis521IDFilter`
+            );
+            replacements.novartis521IDFilter = `%${idFilter}%`;
+          }
         }
 
+        // Filter by isCoreTeamMember (boolean)
         if (
-          filters.isCoreTeamMember === true ||
-          filters.isCoreTeamMember === false
+          filters.isCoreTeamMember !== null &&
+          filters.isCoreTeamMember !== undefined
         ) {
           const resourceInfoInclude = include.find(
             (inc) => inc.as === 'resourceInfo'
@@ -411,9 +450,14 @@ class ResourceService extends baseService {
             resourceInfoInclude.required = true;
           }
 
-          // Add to raw whereConditions for count query
-          whereConditions += ` AND "resourceInfo"."isCoreTeamMember" = ${filters.isCoreTeamMember}`;
+          // Add to whereConditions for count query
+          whereConditions.push(
+            `"resourceInfo"."isCoreTeamMember" = :isCoreTeamMember`
+          );
+          replacements.isCoreTeamMember = filters.isCoreTeamMember;
         }
+
+        // Additional filters can be added here following the same pattern
       }
 
       // Sorting
@@ -471,7 +515,10 @@ class ResourceService extends baseService {
         siteCode: resourceDeal.resource?.siteCode
       }));
 
-      // Count Query
+      // Join where conditions for the count query
+      const whereClauseString = whereConditions.join(' AND ');
+
+      // Count Query using parameterized inputs
       const countQuery = `
         SELECT COUNT(*) FROM (
           SELECT DISTINCT "ResourceDealMapping"."userId", "ResourceDealMapping"."dealId", "ResourceDealMapping"."dealStageId"
@@ -484,12 +531,13 @@ class ResourceService extends baseService {
             ON "ResourceDealMapping"."userId" = "resource"."id"
           LEFT OUTER JOIN "Stages" AS "stage"
             ON "ResourceDealMapping"."dealStageId" = "stage"."id"
-          WHERE ${whereConditions}
+          WHERE ${whereClauseString}
         ) AS subquery;
       `;
 
       const countResult = await sequelize.query(countQuery, {
-        type: Sequelize.QueryTypes.SELECT
+        type: Sequelize.QueryTypes.SELECT,
+        replacements
       });
 
       const totalRecords = parseInt(countResult[0].count, 10);
@@ -504,13 +552,17 @@ class ResourceService extends baseService {
       };
 
       // Return the response
-      return {
-        data: resources,
-        pagination
-      };
+
+      if (resources.length > 0) {
+        return { data: resources, pagination };
+      } else {
+        return {
+          data: resources
+        };
+      }
     } catch (error) {
       console.error(error);
-      errorHandler.handle(error); // Replace with your actual error handler
+      errorHandler.handle(error);
     }
   }
 }
