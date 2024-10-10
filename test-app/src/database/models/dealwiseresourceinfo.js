@@ -12,8 +12,8 @@ module.exports = (sequelize, DataTypes) => {
 
       // A DealWiseResourceInfo belongs to a User (Many-to-One relationship)
       DealWiseResourceInfo.belongsTo(models.User, {
-        foreignKey: 'resourceId',
-        as: 'resource'
+        foreignKey: 'resourceId', // This matches 'resourceId' in User model
+        as: 'resource' // Alias to clarify the association with User
       });
 
       // A DealWiseResourceInfo belongs to a LineFunction (Many-to-One relationship)
