@@ -254,7 +254,7 @@ class ResourceService extends baseService {
             resourceInfoInclude.where = {
               ...resourceInfoInclude.where,
               lineFunction: {
-                [Op.in]: filters.lineFunction
+                [Sequelize.Op.in]: filters.lineFunction
               }
             };
             resourceInfoInclude.required = true;
@@ -266,7 +266,7 @@ class ResourceService extends baseService {
 
         // Filter by stages
         if (filters.stage && filters.stage.length) {
-          whereClause.dealStageId = { [Op.in]: filters.stage };
+          whereClause.dealStageId = { [Sequelize.Op.in]: filters.stage };
           // Add to raw whereConditions for count query
           whereConditions += ` AND "ResourceDealMapping"."dealStageId" IN (${filters.stage.join(',')})`;
         }
@@ -278,12 +278,12 @@ class ResourceService extends baseService {
           if (resourceInclude) {
             resourceInclude.where = {
               ...resourceInclude.where,
-              [Op.or]: [
+              [Sequelize.Op.or]: [
                 {
-                  firstName: { [Op.iLike]: `%${filters.name}%` }
+                  firstName: { [Sequelize.Op.iLike]: `%${filters.name}%` }
                 },
                 {
-                  lastName: { [Op.iLike]: `%${filters.name}%` }
+                  lastName: { [Sequelize.Op.iLike]: `%${filters.name}%` }
                 },
                 Sequelize.where(
                   Sequelize.fn(
@@ -293,7 +293,7 @@ class ResourceService extends baseService {
                     Sequelize.col('resource.lastName')
                   ),
                   {
-                    [Op.iLike]: `%${filters.name}%`
+                    [Sequelize.Op.iLike]: `%${filters.name}%`
                   }
                 )
               ]
@@ -312,7 +312,7 @@ class ResourceService extends baseService {
           if (resourceInclude) {
             resourceInclude.where = {
               ...resourceInclude.where,
-              email: { [Op.iLike]: `%${filters.email}%` }
+              email: { [Sequelize.Op.iLike]: `%${filters.email}%` }
             };
             resourceInclude.required = true;
           }
@@ -347,7 +347,7 @@ class ResourceService extends baseService {
             resourceInfoInclude.where = {
               ...resourceInfoInclude.where,
               webTrainingStatus: {
-                [Op.in]: filters.webTrainingStatus
+                [Sequelize.Op.in]: filters.webTrainingStatus
               }
             };
             resourceInfoInclude.required = true;
@@ -367,7 +367,7 @@ class ResourceService extends baseService {
           if (resourceInclude) {
             resourceInclude.where = {
               ...resourceInclude.where,
-              title: { [Op.iLike]: `%${filters.title}%` }
+              title: { [Sequelize.Op.iLike]: `%${filters.title}%` }
             };
             resourceInclude.required = true;
           }
@@ -383,7 +383,7 @@ class ResourceService extends baseService {
             resourceInclude.where = {
               ...resourceInclude.where,
               novartis521ID: {
-                [Op.iLike]: `%${filters.novartis521ID}%`
+                [Sequelize.Op.iLike]: `%${filters.novartis521ID}%`
               }
             };
             resourceInclude.required = true;

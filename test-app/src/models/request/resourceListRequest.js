@@ -3,16 +3,16 @@ const joi = require('joi');
 const filtersSchema = joi.object({
   lineFunction: joi.array().items(joi.number().integer()).optional(),
   stage: joi.array().items(joi.number().integer()).optional(),
-  name: joi.string().optional(),
-  title: joi.string().optional(),
-  email: joi.string().optional(),
+  name: joi.string().empty('').allow(null).optional(),
+  title: joi.string().empty('').allow(null).optional(),
+  email: joi.string().empty('').allow(null).optional(),
   vdrAccessRequested: joi.boolean().optional(),
   webTrainingStatus: joi.array().items(joi.string()).optional(),
-  novartis521ID: joi.string().optional(),
+  novartis521ID: joi.string().empty('').allow(null).optional(),
   isCoreTeamMember: joi.boolean().optional(),
-  oneToOneDiscussion: joi.string().optional(),
-  optionalColumn: joi.string().optional(),
-  siteCode: joi.string().optional()
+  oneToOneDiscussion: joi.string().empty('').allow(null).optional(),
+  optionalColumn: joi.string().empty('').allow(null).optional(),
+  siteCode: joi.string().empty('').allow(null).optional()
 });
 
 const listResourcesRequest = joi.object({
