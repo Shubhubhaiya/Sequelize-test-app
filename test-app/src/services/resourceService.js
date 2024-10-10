@@ -225,7 +225,19 @@ class ResourceService extends baseService {
               attributes: ['id', 'name']
             }
           ],
-          required: true
+          required: true,
+          on: {
+            [Sequelize.Op.and]: [
+              Sequelize.where(
+                Sequelize.col('ResourceDealMapping.userId'),
+                Sequelize.col('resourceInfo.resourceId')
+              ),
+              Sequelize.where(
+                Sequelize.col('ResourceDealMapping.dealId'),
+                Sequelize.col('resourceInfo.dealId')
+              )
+            ]
+          }
         },
         {
           model: User,
@@ -525,6 +537,7 @@ class ResourceService extends baseService {
           FROM "ResourceDealMapping"
           INNER JOIN "DealWiseResourceInfo" AS "resourceInfo"
             ON "ResourceDealMapping"."dealId" = "resourceInfo"."dealId"
+            AND "ResourceDealMapping"."userId" = "resourceInfo"."resourceId"
           LEFT OUTER JOIN "LineFunctions" AS "associatedLineFunction"
             ON "resourceInfo"."lineFunction" = "associatedLineFunction"."id"
           LEFT OUTER JOIN "Users" AS "resource"
