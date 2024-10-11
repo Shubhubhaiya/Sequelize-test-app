@@ -182,11 +182,46 @@ class ResourceService extends baseService {
   }
 
   async getResourceList(query, body) {
-    const { dealId, filters } = body;
+    const { dealId, filters, userId } = body;
     const { page = 1, limit = 10 } = query;
 
     try {
       const offset = (page - 1) * limit;
+
+      // Validate user existence and role
+      const userResponse = await User.findByPk(userId);
+      if (!userResponse) {
+        throw new CustomError('User not found.', statusCodes.BAD_REQUEST);
+      }
+
+      // Check if the user is a System Admin
+      if (
+        userResponse.roleId !== roles.SYSTEM_ADMIN &&
+        userResponse.roleId !== roles.DEAL_LEAD
+      ) {
+        throw new CustomError(
+          'You are not authorized to view resource list',
+          statusCodes.UNAUTHORIZED
+        );
+      }
+
+      // check if user is deal lead and deal lead if deal
+      if (userResponse.roleId == roles.DEAL_LEAD) {
+        const ownDeal = await DealLeadMapping.findOne({
+          where: {
+            dealId,
+            userId: userId,
+            isDeleted: false
+          }
+        });
+
+        if (!ownDeal) {
+          throw new CustomError(
+            'You are not authorized to view resource list',
+            statusCodes.UNAUTHORIZED
+          );
+        }
+      }
 
       // Base where clause for ResourceDealMapping
       const whereClause = { isDeleted: false };
