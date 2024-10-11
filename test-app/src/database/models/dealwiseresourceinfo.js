@@ -1,5 +1,6 @@
 'use strict';
 const { Model } = require('sequelize');
+const { webTrainingStatus } = require('../../config/webTrainingStatus');
 
 module.exports = (sequelize, DataTypes) => {
   class DealWiseResourceInfo extends Model {
@@ -73,7 +74,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false
       },
       webTrainingStatus: {
-        type: DataTypes.ENUM('Not Started', 'In-progress', 'completed'),
+        type: DataTypes.ENUM(
+          webTrainingStatus.NOT_STARTED,
+          webTrainingStatus.IN_PROGRESS,
+          webTrainingStatus.COMPLETED
+        ),
         allowNull: false
       },
       oneToOneDiscussion: {

@@ -1,5 +1,7 @@
 'use strict';
 
+const { webTrainingStatus } = require('../../config/webTrainingStatus');
+
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.bulkInsert('DealWiseResourceInfo', [
@@ -8,7 +10,7 @@ module.exports = {
         resourceId: 5, // Aditya Mantha (Resource)
         lineFunction: 1,
         vdrAccessRequested: true,
-        webTrainingStatus: 'In-progress',
+        webTrainingStatus: webTrainingStatus.IN_PROGRESS,
         oneToOneDiscussion: 'Discussion ongoing about the project scope.',
         optionalColumn: null,
         isCoreTeamMember: true,
@@ -22,7 +24,7 @@ module.exports = {
         resourceId: 6, // Deepthi Konjeti (Resource)
         lineFunction: 2,
         vdrAccessRequested: false,
-        webTrainingStatus: 'Not Started',
+        webTrainingStatus: webTrainingStatus.NOT_STARTED,
         oneToOneDiscussion: null,
         optionalColumn: 'Additional responsibilities will be assigned later.',
         isCoreTeamMember: false,
@@ -36,7 +38,7 @@ module.exports = {
         resourceId: 7, // Biswajit Sahoo (Resource)
         lineFunction: 3,
         vdrAccessRequested: true,
-        webTrainingStatus: 'completed',
+        webTrainingStatus: webTrainingStatus.COMPLETED,
         oneToOneDiscussion:
           'Discussion completed on finalizing the requirements.',
         optionalColumn: 'Expert in CRM and related functions.',
@@ -51,7 +53,7 @@ module.exports = {
         resourceId: 5, // Aditya Mantha (Resource)
         lineFunction: 1,
         vdrAccessRequested: false,
-        webTrainingStatus: 'Not Started',
+        webTrainingStatus: webTrainingStatus.NOT_STARTED,
         oneToOneDiscussion: 'Initial briefing scheduled for next week.',
         optionalColumn: null,
         isCoreTeamMember: false,

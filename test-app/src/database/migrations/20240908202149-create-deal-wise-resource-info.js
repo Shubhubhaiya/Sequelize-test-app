@@ -1,5 +1,7 @@
 'use strict';
 
+const { webTrainingStatus } = require('../../config/webTrainingStatus');
+
 module.exports = {
   up: async (queryInterface, Sequelize) => {
     await queryInterface.createTable('DealWiseResourceInfo', {
@@ -34,7 +36,11 @@ module.exports = {
         allowNull: false
       },
       webTrainingStatus: {
-        type: Sequelize.ENUM('Not Started', 'In-progress', 'completed'),
+        type: Sequelize.ENUM(
+          webTrainingStatus.NOT_STARTED,
+          webTrainingStatus.IN_PROGRESS,
+          webTrainingStatus.COMPLETED
+        ),
         allowNull: false
       },
       oneToOneDiscussion: {

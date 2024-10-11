@@ -1,4 +1,5 @@
 const Joi = require('joi');
+const { webTrainingStatusMappings } = require('../../config/webTrainingStatus');
 
 // Define the schema for filters
 const filtersSchema = Joi.object({
@@ -25,7 +26,21 @@ const filtersSchema = Joi.object({
 
   // Filter by web training status (array of specific status strings)
   webTrainingStatus: Joi.array()
-    .items(Joi.string().valid('Not Started', 'In-progress', 'completed'))
+    .items(
+      Joi.string()
+        .trim()
+        .custom((value, helpers) => {
+          const normalizedValue = value.toLowerCase();
+          const mappedValue = webTrainingStatusMappings[normalizedValue];
+          if (!mappedValue) {
+            return helpers.error('any.invalid');
+          }
+          return mappedValue;
+        })
+        .messages({
+          'any.invalid': 'Invalid webTrainingStatus value'
+        })
+    )
     .allow(null)
     .optional(),
 

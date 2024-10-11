@@ -301,15 +301,19 @@ class ResourceService extends baseService {
           replacements.vdrAccessRequested = filters.vdrAccessRequested;
         }
 
-        // Filter by Web Training Status
+        // Filter by Web Training Status (case-insensitive)
         if (filters.webTrainingStatus && filters.webTrainingStatus.length > 0) {
-          resourceInfoWhere.webTrainingStatus = {
-            [Sequelize.Op.in]: filters.webTrainingStatus
-          };
-          whereConditions.push(
-            `"resourceInfo"."webTrainingStatus" IN (:webTrainingStatuses)`
-          );
-          replacements.webTrainingStatuses = filters.webTrainingStatus;
+          const enumStatusValues = filters.webTrainingStatus;
+
+          if (enumStatusValues.length > 0) {
+            resourceInfoWhere.webTrainingStatus = {
+              [Sequelize.Op.in]: enumStatusValues
+            };
+            whereConditions.push(
+              `"resourceInfo"."webTrainingStatus" IN (:enumStatusValues)`
+            );
+            replacements.enumStatusValues = enumStatusValues;
+          }
         }
 
         // Filter by optionalColumn

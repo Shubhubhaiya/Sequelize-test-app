@@ -1,4 +1,5 @@
 const joi = require('joi');
+const { webTrainingStatus } = require('../../config/webTrainingStatus');
 
 const resourceSchema = joi.object({
   email: joi.string().email().required().messages({
@@ -29,7 +30,11 @@ const resourceSchema = joi.object({
   }),
   webTrainingStatus: joi
     .string()
-    .valid('Not Started', 'In-progress', 'completed')
+    .valid(
+      webTrainingStatus.NOT_STARTED,
+      webTrainingStatus.IN_PROGRESS,
+      webTrainingStatus.COMPLETED
+    )
     .required()
     .messages({
       'any.required': 'Web Training Status is required',
