@@ -633,13 +633,6 @@ class ResourceService extends baseService {
           );
         }
       }
-      // Other roles are not allowed to delete resources
-      else if (currentUser.roleId === roles.RESOURCE) {
-        throw new CustomError(
-          'You are not authorized to delete resources',
-          statusCodes.UNAUTHORIZED
-        );
-      }
 
       // Check if the resource exists in this stage of the deal
       const resourceMapping = await ResourceDealMapping.findOne({
@@ -648,7 +641,8 @@ class ResourceService extends baseService {
           dealStageId: stageId,
           userId: resourceId,
           isDeleted: false
-        }
+        },
+        transaction
       });
       if (!resourceMapping) {
         throw new CustomError(
@@ -658,7 +652,28 @@ class ResourceService extends baseService {
       }
 
       // Soft delete the resource
-      await resourceMapping.update({ isDeleted: true }, { transaction });
+      await resourceMapping.update(
+        { isDeleted: true, modifiedBy: userId },
+        { transaction }
+      );
+
+      // Check if the resource is deleted from all stages of the deal
+      const remainingStages = await ResourceDealMapping.findAll({
+        where: {
+          dealId,
+          userId: resourceId,
+          isDeleted: false
+        },
+        transaction
+      });
+
+      // If the resource is deleted from all stages, delete from DealWiseResourceInfo
+      if (remainingStages.length === 0) {
+        await DealWiseResourceInfo.destroy({
+          where: { dealId, resourceId },
+          transaction
+        });
+      }
 
       await transaction.commit();
       return { message: 'Resource deleted successfully' };
