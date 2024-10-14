@@ -53,7 +53,27 @@ const listResources = async (req, res, next) => {
   }
 };
 
+const deleteResource = async (req, res, next) => {
+  try {
+    const { dealId, stageId, resourceId } = req.params;
+    const userId = req.query.userId;
+
+    // Call the service to soft delete the resource from the stage
+    const result = await resourceService.removeResourceFromStage({
+      dealId,
+      stageId,
+      resourceId,
+      userId
+    });
+
+    return res.status(statusCodes.SUCCESS).json(apiResponse.success(result));
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   addResource,
-  listResources
+  listResources,
+  deleteResource
 };

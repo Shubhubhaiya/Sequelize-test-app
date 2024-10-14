@@ -28,7 +28,7 @@ class ResourceService extends baseService {
       // Fetch the user adding the resources and validate their role
       const currentUser = await User.findByPk(userId);
       if (!currentUser) {
-        throw new CustomError('User not found', statusCodes.NOT_FOUND);
+        throw new CustomError('User not found', statusCodes.BAD_REQUEST);
       }
 
       // Deal Lead can only add resources to deals they lead
@@ -588,13 +588,82 @@ class ResourceService extends baseService {
 
         // Return data with pagination if records exist
         if (resources.length > 0) {
-          return { data: resources, pagination };
+          return { data: resources, ...pagination };
         } else {
           return { data: resources };
         }
       }
     } catch (error) {
       console.error(error);
+      errorHandler.handle(error);
+    }
+  }
+
+  async removeResourceFromStage({ dealId, stageId, resourceId, userId }) {
+    let transaction;
+    try {
+      transaction = await sequelize.transaction();
+
+      // Check if the user exists and fetch their details
+      const currentUser = await User.findByPk(userId);
+      if (!currentUser) {
+        throw new CustomError('User not found', statusCodes.BAD_REQUEST);
+      }
+
+      // Check if the user is a System Admin
+      if (
+        currentUser.roleId !== roles.SYSTEM_ADMIN &&
+        currentUser.roleId !== roles.DEAL_LEAD
+      ) {
+        throw new CustomError(
+          'You are not authorized to delete resource',
+          statusCodes.UNAUTHORIZED
+        );
+      }
+
+      // Deal lead can only delete resources from their own deals
+      if (currentUser.roleId === roles.DEAL_LEAD) {
+        const dealLeadMapping = await DealLeadMapping.findOne({
+          where: { userId: currentUser.id, dealId, isDeleted: false }
+        });
+        if (!dealLeadMapping) {
+          throw new CustomError(
+            'Deal leads can only delete resources from their own deals',
+            statusCodes.UNAUTHORIZED
+          );
+        }
+      }
+      // Other roles are not allowed to delete resources
+      else if (currentUser.roleId === roles.RESOURCE) {
+        throw new CustomError(
+          'You are not authorized to delete resources',
+          statusCodes.UNAUTHORIZED
+        );
+      }
+
+      // Check if the resource exists in this stage of the deal
+      const resourceMapping = await ResourceDealMapping.findOne({
+        where: {
+          dealId,
+          dealStageId: stageId,
+          userId: resourceId,
+          isDeleted: false
+        }
+      });
+      if (!resourceMapping) {
+        throw new CustomError(
+          'Resource not found in this stage of the deal',
+          statusCodes.BAD_REQUEST
+        );
+      }
+
+      // Soft delete the resource
+      await resourceMapping.update({ isDeleted: true }, { transaction });
+
+      await transaction.commit();
+      return { message: 'Resource deleted successfully' };
+    } catch (error) {
+      if (transaction) await transaction.rollback();
       errorHandler.handle(error);
     }
   }

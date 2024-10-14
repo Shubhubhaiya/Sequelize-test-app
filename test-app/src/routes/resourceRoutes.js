@@ -6,9 +6,17 @@ const validateResourceListSchema = require('../middleware/validateResourceListRe
 
 // Add resource to a deal
 router.post('/add', validateAddResourceSchema, resourceController.addResource);
+
+// List all resources of deal
 router.post(
   '/list',
   validateResourceListSchema,
   resourceController.listResources
+);
+
+// Delete resource from particular stage of a deal
+router.delete(
+  '/:resourceId/stages/:stageId/deals/:dealId',
+  resourceController.deleteResource
 );
 module.exports = router;
