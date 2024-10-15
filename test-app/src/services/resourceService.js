@@ -16,6 +16,7 @@ const statusCodes = require('../config/statusCodes');
 const roles = require('../config/roles');
 const BaseService = require('./baseService');
 const ResourceDetailResponseMapper = require('../models/response/resourceDetailResponseMapper');
+const ResourceListResponseMapper = require('../models/response/resourceListResponseMapper');
 
 class ResourceService extends BaseService {
   constructor() {
@@ -511,28 +512,7 @@ class ResourceService extends BaseService {
       });
 
       // Map the results to the desired format
-      const resources = data.map((resourceDeal) => ({
-        id: resourceDeal.userId,
-        lineFunction: {
-          id: resourceDeal.resourceInfo?.associatedLineFunction?.id,
-          name: resourceDeal.resourceInfo?.associatedLineFunction?.name
-        },
-        name: `${resourceDeal.resource?.firstName} ${resourceDeal.resource?.lastName}`,
-        stage: {
-          id: resourceDeal.stage?.id,
-          name: resourceDeal.stage?.name
-        },
-        title: resourceDeal.resource?.title,
-        email: resourceDeal.resource?.email,
-        vdrAccessRequested: resourceDeal.resourceInfo?.vdrAccessRequested,
-        webTrainingStatus: resourceDeal.resourceInfo?.webTrainingStatus,
-        novartis521ID: resourceDeal.resource?.novartis521ID,
-        isCoreTeamMember: resourceDeal.resourceInfo?.isCoreTeamMember,
-        oneToOneDiscussion: resourceDeal.resourceInfo?.oneToOneDiscussion,
-        optionalColumn: resourceDeal.resourceInfo?.optionalColumn,
-        siteCode: resourceDeal.resource?.siteCode
-      }));
-
+      const resources = ResourceListResponseMapper.mapResourceList(data);
       // Compile the WHERE conditions into a single string for the count query
       const whereClauseString = whereConditions.join(' AND ');
 

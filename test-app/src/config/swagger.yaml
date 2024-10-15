@@ -1182,6 +1182,10 @@ components:
           type: integer
           example: 1
           description: Resource ID.
+        record:
+          type: integer
+          example: 1
+          description: Unique number for record.
         lineFunction:
           type: object
           properties:
