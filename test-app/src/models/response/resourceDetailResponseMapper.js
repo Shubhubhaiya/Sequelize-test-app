@@ -1,4 +1,4 @@
-class ResourceDetailResponse {
+class ResourceDetailResponseMapper {
   constructor(resource) {
     this.id = resource.userId;
     this.firstName = resource.resource.firstName;
@@ -28,4 +28,4 @@ class ResourceDetailResponse {
   }
 }
 
-module.exports = ResourceDetailResponse;
+module.exports = ResourceDetailResponseMapper;

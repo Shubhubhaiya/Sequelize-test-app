@@ -62,9 +62,6 @@ const filtersSchema = Joi.object({
 
 // Define the main request schema
 const listResourcesRequest = Joi.object({
-  // ID of the user making the request (integer, required)
-  userId: Joi.number().integer().required(),
-
   // ID of the deal to filter resources (integer, required)
   dealId: Joi.number().integer().required(),
 

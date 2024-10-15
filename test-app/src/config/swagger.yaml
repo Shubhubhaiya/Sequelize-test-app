@@ -1076,13 +1076,8 @@ components:
     ResourceListRequest:
       type: object
       required:
-        - userId
         - dealId
       properties:
-        userId:
-          type: integer
-          example: 1
-          description: The ID of the user requesting the resource list.
         dealId:
           type: integer
           example: 2
