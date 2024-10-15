@@ -27,7 +27,7 @@ class ResourceService extends BaseService {
       transaction = await sequelize.transaction();
 
       // Fetch the user adding the resources and validate their role
-      const currentUser = await User.findByPk(userId);
+      const currentUser = await User.findByPk(userId, { transaction });
       if (!currentUser) {
         throw new CustomError('User not found', statusCodes.BAD_REQUEST);
       }
@@ -35,7 +35,8 @@ class ResourceService extends BaseService {
       // Deal Lead can only add resources to deals they lead
       if (currentUser.roleId === roles.DEAL_LEAD) {
         const dealLeadMapping = await DealLeadMapping.findOne({
-          where: { userId: currentUser.id, dealId, isDeleted: false }
+          where: { userId: currentUser.id, dealId, isDeleted: false },
+          transaction
         });
         if (!dealLeadMapping) {
           throw new CustomError(
@@ -47,7 +48,8 @@ class ResourceService extends BaseService {
 
       // Validate if the deal exists and is not deleted
       const deal = await Deal.findOne({
-        where: { id: dealId, isDeleted: false }
+        where: { id: dealId, isDeleted: false },
+        transaction
       });
       if (!deal) {
         throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
@@ -66,7 +68,9 @@ class ResourceService extends BaseService {
         } = resource;
 
         // Validate line function
-        const lineFunctionExists = await LineFunction.findByPk(lineFunction);
+        const lineFunctionExists = await LineFunction.findByPk(lineFunction, {
+          transaction
+        });
         if (!lineFunctionExists) {
           throw new CustomError(
             `Line Function with ID ${lineFunction} not found`,
@@ -75,7 +79,10 @@ class ResourceService extends BaseService {
         }
 
         // Validate stages
-        const validStages = await Stage.findAll({ where: { id: stages } });
+        const validStages = await Stage.findAll({
+          where: { id: stages },
+          transaction
+        });
         const foundStageIds = validStages.map((stage) => stage.id);
         const invalidStages = stages.filter(
           (stageId) => !foundStageIds.includes(stageId)
@@ -89,29 +96,67 @@ class ResourceService extends BaseService {
 
         // Search for the resource by email
         let user = await User.findOne({
-          where: { email: { [Sequelize.Op.iLike]: email } }
+          where: { email: { [Sequelize.Op.iLike]: email } },
+          transaction
         });
 
         if (!user) {
+          // TODO
+          // search user from active directory if not found return error
           throw new CustomError(
-            `Resource with this email {resource.email} not found!`,
+            `Resource with email ${email} not found!`,
             statusCodes.BAD_REQUEST
           );
-          // Search user from active directory
-          // If found insert user record into our database
-          // user = await User.create(
-          //   {
-          //     email,
-          //     roleId: roles.RESOURCE,
-          //     createdBy: userId
-          //   },
-          //   { transaction }
-          // );
+        }
+
+        // Check if resource is already assigned to the same deal and stage
+        for (const stageId of stages) {
+          const existingMapping = await ResourceDealMapping.findOne({
+            where: {
+              userId: user.id,
+              dealId: dealId,
+              dealStageId: stageId
+            },
+            transaction
+          });
+
+          // Fetch the stage name for the error message
+          const stage = await Stage.findByPk(stageId, { transaction });
+
+          if (existingMapping) {
+            if (existingMapping.isDeleted) {
+              // If the resource was deleted, update `isDeleted` to false
+              await existingMapping.update(
+                { isDeleted: false, createdBy: userId, modifiedBy: userId },
+                { transaction }
+              );
+            } else {
+              // If resource is already part of the same stage and deal, return an error
+              throw new CustomError(
+                `Resource (${email}) is already part of ${stage.name} stage`,
+                statusCodes.CONFLICT
+              );
+            }
+          } else {
+            // Insert resource mapping with stages in ResourceDealMapping
+            await ResourceDealMapping.create(
+              {
+                userId: user.id,
+                dealId,
+                dealStageId: stageId,
+                isDeleted: false,
+                createdBy: userId,
+                modifiedBy: userId
+              },
+              { transaction }
+            );
+          }
         }
 
         // Insert or update resource data in DealWiseResourceInfo table
         const existingResourceInfo = await DealWiseResourceInfo.findOne({
-          where: { dealId, resourceId: user.id }
+          where: { dealId, resourceId: user.id },
+          transaction
         });
 
         if (existingResourceInfo) {
@@ -143,34 +188,6 @@ class ResourceService extends BaseService {
             },
             { transaction }
           );
-        }
-
-        // Insert or update resource mapping with stages in ResourceDealMapping
-        for (const stageId of stages) {
-          const existingMapping = await ResourceDealMapping.findOne({
-            where: { userId: user.id, dealId, dealStageId: stageId }
-          });
-
-          if (existingMapping) {
-            if (existingMapping.isDeleted) {
-              await existingMapping.update(
-                { isDeleted: false, modifiedBy: userId },
-                { transaction }
-              );
-            }
-          } else {
-            await ResourceDealMapping.create(
-              {
-                userId: user.id,
-                dealId,
-                dealStageId: stageId,
-                isDeleted: false,
-                createdBy: userId,
-                modifiedBy: userId
-              },
-              { transaction }
-            );
-          }
         }
       }
 
