@@ -12,10 +12,10 @@ const {
 const baseService = require('./baseService');
 const apiResponse = require('../utils/apiResponse');
 const roles = require('../config/roles');
-const DealDetailResponse = require('../models/response/dealDetailResponse');
 const errorHandler = require('../utils/errorHandler');
 const CustomError = require('../utils/customError');
 const statusCodes = require('../config/statusCodes');
+const DealDetailResponseMapper = require('../models/response/dealDetailResponseMapper');
 
 class DealService extends baseService {
   constructor() {
@@ -376,7 +376,7 @@ class DealService extends baseService {
       }
 
       // constructing deal response
-      const dealDetailResponse = new DealDetailResponse(deal);
+      const dealDetailResponse = new DealDetailResponseMapper(deal);
 
       return apiResponse.success(dealDetailResponse);
     } catch (error) {

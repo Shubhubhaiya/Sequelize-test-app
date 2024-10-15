@@ -1,4 +1,4 @@
-class DealDetailResponse {
+class DealDetailResponseMapper {
   constructor(deal) {
     this.id = deal.id;
     this.name = deal.name;
@@ -21,4 +21,4 @@ class DealDetailResponse {
   }
 }
 
-module.exports = DealDetailResponse;
+module.exports = DealDetailResponseMapper;
