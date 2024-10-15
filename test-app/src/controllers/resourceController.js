@@ -77,10 +77,9 @@ const deleteResource = async (req, res, next) => {
 // Get Resource Detail
 const getResourceDetail = async (req, res, next) => {
   try {
-    const { userId, resourceId, dealId, stageId } = req.query;
+    const { resourceId, dealId, stageId } = req.query;
 
     const resourceDetail = await resourceService.getResourceDetail(
-      userId,
       resourceId,
       dealId,
       stageId

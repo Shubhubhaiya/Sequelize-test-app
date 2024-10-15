@@ -2,11 +2,6 @@ const Joi = require('joi');
 
 const resourceDetailRequest = {
   query: Joi.object({
-    userId: Joi.number().integer().required().messages({
-      'any.required': 'User ID is required',
-      'number.base': 'User ID must be a number',
-      'number.integer': 'User ID must be an integer'
-    }),
     resourceId: Joi.number().integer().required().messages({
       'any.required': 'Resource ID is required',
       'number.base': 'Resource ID must be a number',

@@ -590,13 +590,6 @@ paths:
         - Resources
       parameters:
         - in: query
-          name: userId
-          required: true
-          schema:
-            type: integer
-            example: 1
-          description: The ID of the user sending the request.
-        - in: query
           name: resourceId
           required: true
           schema:

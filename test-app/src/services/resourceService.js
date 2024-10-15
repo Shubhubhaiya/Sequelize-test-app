@@ -644,38 +644,8 @@ class ResourceService extends BaseService {
     }
   }
 
-  async getResourceDetail(userId, resourceId, dealId, stageId) {
+  async getResourceDetail(resourceId, dealId, stageId) {
     try {
-      // Check if the user exists and fetch their details
-      const currentUser = await User.findByPk(userId);
-      if (!currentUser) {
-        throw new CustomError('User not found', statusCodes.BAD_REQUEST);
-      }
-
-      // Check if the user is not system admin or deal lead
-      if (
-        currentUser.roleId !== roles.SYSTEM_ADMIN &&
-        currentUser.roleId !== roles.DEAL_LEAD
-      ) {
-        throw new CustomError(
-          'You are not authorized to delete resource',
-          statusCodes.UNAUTHORIZED
-        );
-      }
-
-      // Deal lead can only delete resources from their own deals
-      if (currentUser.roleId === roles.DEAL_LEAD) {
-        const dealLeadMapping = await DealLeadMapping.findOne({
-          where: { userId: currentUser.id, dealId, isDeleted: false }
-        });
-        if (!dealLeadMapping) {
-          throw new CustomError(
-            'Deal leads can only view resources from their own deals',
-            statusCodes.UNAUTHORIZED
-          );
-        }
-      }
-
       // Fetch the resource details by resourceId and dealId
       const resource = await ResourceDealMapping.findOne({
         where: {
