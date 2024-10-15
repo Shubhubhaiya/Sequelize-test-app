@@ -610,6 +610,13 @@ paths:
             type: integer
             example: 3
           description: The ID of the deal associated with the resource.
+        - in: query
+          name: stageId
+          required: true
+          schema:
+            type: integer
+            example: 3
+          description: The ID of the stage associated with the deal of resource.
       responses:
         200:
           description: Successful response with resource details.
