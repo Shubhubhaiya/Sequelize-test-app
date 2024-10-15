@@ -40,6 +40,7 @@ const addResource = async (req, res, next) => {
   }
 };
 
+// List all resources of deal
 const listResources = async (req, res, next) => {
   try {
     const { page = 1, limit = 10 } = req.body;
@@ -53,6 +54,7 @@ const listResources = async (req, res, next) => {
   }
 };
 
+// Delete Resource
 const deleteResource = async (req, res, next) => {
   try {
     const { dealId, stageId, resourceId } = req.params;
@@ -72,8 +74,28 @@ const deleteResource = async (req, res, next) => {
   }
 };
 
+// Get Resource Detail
+const getResourceDetail = async (req, res, next) => {
+  try {
+    const { userId, resourceId, dealId, stageId } = req.query;
+
+    const resourceDetail = await resourceService.getResourceDetail(
+      userId,
+      resourceId,
+      dealId,
+      stageId
+    );
+
+    return res
+      .status(statusCodes.SUCCESS)
+      .json(apiResponse.success(resourceDetail));
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   addResource,
   listResources,
-  deleteResource
+  deleteResource,
+  getResourceDetail
 };

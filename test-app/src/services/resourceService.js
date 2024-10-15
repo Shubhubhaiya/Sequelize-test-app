@@ -14,9 +14,10 @@ const errorHandler = require('../utils/errorHandler');
 const CustomError = require('../utils/customError');
 const statusCodes = require('../config/statusCodes');
 const roles = require('../config/roles');
-const baseService = require('./baseService');
+const BaseService = require('./baseService');
+const ResourceDetailResponse = require('../models/response/resourceDetailResponse');
 
-class ResourceService extends baseService {
+class ResourceService extends BaseService {
   constructor() {
     super(ResourceDealMapping);
   }
@@ -679,6 +680,100 @@ class ResourceService extends baseService {
       return { message: 'Resource deleted successfully' };
     } catch (error) {
       if (transaction) await transaction.rollback();
+      errorHandler.handle(error);
+    }
+  }
+
+  async getResourceDetail(userId, resourceId, dealId, stageId) {
+    try {
+      // Check if the user exists and fetch their details
+      const currentUser = await User.findByPk(userId);
+      if (!currentUser) {
+        throw new CustomError('User not found', statusCodes.BAD_REQUEST);
+      }
+
+      // Check if the user is not system admin or deal lead
+      if (
+        currentUser.roleId !== roles.SYSTEM_ADMIN &&
+        currentUser.roleId !== roles.DEAL_LEAD
+      ) {
+        throw new CustomError(
+          'You are not authorized to delete resource',
+          statusCodes.UNAUTHORIZED
+        );
+      }
+
+      // Deal lead can only delete resources from their own deals
+      if (currentUser.roleId === roles.DEAL_LEAD) {
+        const dealLeadMapping = await DealLeadMapping.findOne({
+          where: { userId: currentUser.id, dealId, isDeleted: false }
+        });
+        if (!dealLeadMapping) {
+          throw new CustomError(
+            'Deal leads can only view resources from their own deals',
+            statusCodes.UNAUTHORIZED
+          );
+        }
+      }
+
+      // Fetch the resource details by resourceId and dealId
+      const resource = await ResourceDealMapping.findOne({
+        where: {
+          userId: resourceId,
+          dealId,
+          dealStageId: stageId,
+          isDeleted: false
+        },
+        include: [
+          {
+            model: User,
+            as: 'resource',
+            attributes: [
+              'id',
+              'firstName',
+              'lastName',
+              'title',
+              'email',
+              'novartis521ID',
+              'siteCode'
+            ]
+          },
+          {
+            model: DealWiseResourceInfo,
+            as: 'resourceInfo',
+            attributes: [
+              'vdrAccessRequested',
+              'webTrainingStatus',
+              'oneToOneDiscussion',
+              'optionalColumn',
+              'isCoreTeamMember',
+              'lineFunction'
+            ],
+            include: [
+              {
+                model: LineFunction,
+                as: 'associatedLineFunction',
+                attributes: ['id', 'name']
+              }
+            ]
+          },
+          {
+            model: Stage,
+            as: 'stage',
+            attributes: ['id', 'name']
+          }
+        ]
+      });
+
+      //throw an error
+      if (!resource) {
+        throw new CustomError('Resource not found', statusCodes.BAD_REQUEST);
+      }
+
+      // Format the response
+      const resourceDetailResponse = new ResourceDetailResponse(resource);
+      return resourceDetailResponse;
+    } catch (error) {
       errorHandler.handle(error);
     }
   }
