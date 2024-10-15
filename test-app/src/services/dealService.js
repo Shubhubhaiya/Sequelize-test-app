@@ -74,7 +74,10 @@ class DealService extends baseService {
 
       // Check for duplicate deal name
       const existingDeal = await Deal.findOne({
-        where: { name, isDeleted: false }
+        where: {
+          name: { [Sequelize.Op.iLike]: name },
+          isDeleted: false
+        }
       });
       if (existingDeal) {
         throw new CustomError(
@@ -182,7 +185,11 @@ class DealService extends baseService {
 
       //Check if any other deal with same name exists
       const isDealWithSameNameExists = await Deal.findOne({
-        where: { name, id: { [Sequelize.Op.ne]: dealId }, isDeleted: false }
+        where: {
+          name: { [Sequelize.Op.iLike]: name },
+          id: { [Sequelize.Op.ne]: dealId }, // Exclude the current deal
+          isDeleted: false
+        }
       });
 
       if (isDealWithSameNameExists) {
