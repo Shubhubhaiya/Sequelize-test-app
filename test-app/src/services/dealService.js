@@ -145,6 +145,28 @@ class DealService extends baseService {
     try {
       transaction = await sequelize.transaction();
 
+      // check if deal exists
+      const deal = await Deal.findByPk(dealId);
+      if (!deal) {
+        throw new CustomError('Deal not found.', statusCodes.NOT_FOUND);
+      }
+
+      //Check if any other deal with same name exists
+      const isDealWithSameNameExists = await Deal.findOne({
+        where: {
+          name: { [Sequelize.Op.iLike]: name },
+          id: { [Sequelize.Op.ne]: dealId }, // Exclude the current deal
+          isDeleted: false
+        }
+      });
+
+      if (isDealWithSameNameExists) {
+        throw new CustomError(
+          'This deal name is already in use.',
+          statusCodes.CONFLICT
+        );
+      }
+
       // fetching the request body data
       const { name, stage, therapeuticArea, userId, dealLead } = data;
 
@@ -174,28 +196,6 @@ class DealService extends baseService {
         throw new CustomError(
           'Deal can only assigned to deal lead.',
           statusCodes.BAD_REQUEST
-        );
-      }
-
-      // check if deal exists
-      const deal = await Deal.findByPk(dealId);
-      if (!deal) {
-        throw new CustomError('Deal not found.', statusCodes.NOT_FOUND);
-      }
-
-      //Check if any other deal with same name exists
-      const isDealWithSameNameExists = await Deal.findOne({
-        where: {
-          name: { [Sequelize.Op.iLike]: name },
-          id: { [Sequelize.Op.ne]: dealId }, // Exclude the current deal
-          isDeleted: false
-        }
-      });
-
-      if (isDealWithSameNameExists) {
-        throw new CustomError(
-          'This deal name is already in use.',
-          statusCodes.CONFLICT
         );
       }
 
