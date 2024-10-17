@@ -23,9 +23,9 @@ router.get(
   resourceController.getResourceDetail
 );
 
-// Delete resource from particular stage of a deal
+//  Delete resource from particular stage of a deal
 router.delete(
-  '/:resourceId/stages/:stageId/deals/:dealId',
+  '/delete',
   validateDeleteResourceSchema,
   resourceController.deleteResource
 );

@@ -514,40 +514,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /resources/{resourceId}/stages/{stageId}/deals/{dealId}:
+  /resources/delete:
     delete:
-      tags:
-        - Resources
       summary: Soft delete a resource from a stage of a deal
       description: Soft delete a resource from a specific stage of a deal. Deal leads can only delete resources from their own deals, while system admins have full access.
-      parameters:
-        - in: path
-          name: resourceId
-          required: true
-          schema:
-            type: string
-          description: The ID of the resource to delete
-        - in: path
-          name: stageId
-          required: true
-          schema:
-            type: string
-          description: The ID of the stage from which the resource is being deleted
-        - in: path
-          name: dealId
-          required: true
-          schema:
-            type: string
-          description: The ID of the deal associated with the resource
-        - in: query
-          name: userId
-          required: true
-          schema:
-            type: string
-          description: The ID of the user performing the deletion
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeleteResourceRequest'
       responses:
-        '200':
-          description: Resource soft deleted successfully
+        200:
+          description: Resource deleted successfully.
           content:
             application/json:
               schema:
@@ -555,28 +536,27 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: Resource deleted successfully
-
-          '400':
-          description: Bad request - Resource not found or invalid input
+                    example: 'Resource deleted successfully.'
+        400:
+          description: Bad request - Resource not found or invalid input.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '401':
-          description: Unauthorized - User is not authorized to delete the resource
+        401:
+          description: Unauthorized - User is not authorized to delete the resource.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '404':
-          description: Not Found - Deal, resource, or stage not found
+        404:
+          description: Not Found - Deal, resource, or stage not found.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '500':
-          description: Internal Server Error
+        500:
+          description: Internal Server Error.
           content:
             application/json:
               schema:
@@ -892,6 +872,7 @@ components:
                         name:
                           type: string
                           example: 'CRM'
+
     DealsListResponse:
       type: object
       properties:
@@ -1177,6 +1158,31 @@ components:
           type: integer
           example: 10
           description: Number of records per page.
+
+    DeleteResourceRequest:
+      type: object
+      required:
+        - dealId
+        - stageId
+        - resourceId
+        - userId
+      properties:
+        dealId:
+          type: integer
+          example: 1
+          description: The ID of the deal.
+        stageId:
+          type: integer
+          example: 2
+          description: The ID of the stage within the deal.
+        resourceId:
+          type: integer
+          example: 3
+          description: The ID of the resource to delete.
+        userId:
+          type: integer
+          example: 4
+          description: The ID of the user performing the delete operation.
 
     ResourceDetail:
       type: object

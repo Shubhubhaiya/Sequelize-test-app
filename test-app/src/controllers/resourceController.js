@@ -57,8 +57,8 @@ const listResources = async (req, res, next) => {
 // Delete Resource
 const deleteResource = async (req, res, next) => {
   try {
-    const { dealId, stageId, resourceId } = req.params;
-    const userId = req.query.userId;
+    // Extract data from request body
+    const { dealId, stageId, resourceId, userId } = req.body;
 
     // Call the service to soft delete the resource from the stage
     const result = await resourceService.removeResourceFromStage({

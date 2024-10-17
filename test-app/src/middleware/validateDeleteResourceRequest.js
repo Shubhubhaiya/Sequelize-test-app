@@ -6,29 +6,14 @@ const {
 
 // Middleware to validate the deleteDeal request
 const validateDeleteResourceSchema = (req, res, next) => {
-  const { error: paramsError } = deleteResourceRequest.params.validate(
-    req.params
-  );
-  if (paramsError) {
+  const { error } = deleteResourceRequest.body.validate(req.body);
+
+  if (error) {
     return res
       .status(statusCodes.BAD_REQUEST)
-      .send(
-        apiResponse.badRequest({ message: paramsError.details[0].message })
-      );
+      .send(apiResponse.badRequest({ message: error.details[0].message }));
   }
 
-  // Validate query (userId)
-  const { error: queryError } = deleteResourceRequest.query.validate(
-    req.query,
-    {}
-  );
-  if (queryError) {
-    return res
-      .status(statusCodes.BAD_REQUEST)
-      .send(apiResponse.badRequest({ message: queryError.details[0].message }));
-  }
-
-  // If both params and query validation pass, proceed
   next();
 };
 
