@@ -345,7 +345,7 @@ class DealService extends baseService {
 
   async getDealDetail(dealId) {
     try {
-      // Fetch the deal along with the related models (Stage, TherapeuticArea, and DealLead)
+      // Fetch the deal along with the related models (Stage, TherapeuticArea, DealLead, and their TherapeuticAreas)
       const deal = await Deal.findOne({
         where: { id: dealId },
         include: [
@@ -373,6 +373,16 @@ class DealService extends baseService {
               'firstName',
               'lastName',
               'title'
+            ],
+            include: [
+              {
+                model: TherapeuticArea,
+                as: 'therapeuticAreas',
+                attributes: ['id', 'name'],
+                through: {
+                  attributes: []
+                }
+              }
             ]
           }
         ]

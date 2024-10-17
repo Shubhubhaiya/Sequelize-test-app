@@ -16,7 +16,11 @@ class DealDetailResponseMapper {
       novartis521ID: leadUser.novartis521ID,
       firstName: leadUser.firstName,
       lastName: leadUser.lastName,
-      title: leadUser.title
+      title: leadUser.title,
+      therapeuticAreas: leadUser.therapeuticAreas.map((ta) => ({
+        id: ta.id,
+        name: ta.name
+      }))
     }));
   }
 }

@@ -871,7 +871,7 @@ components:
                     example: 'deal2.lead@example.com'
                   novartis521ID:
                     type: string
-                    example: 'deal@novartis.neta'
+                    example: 'deal@novartis.net'
                   firstName:
                     type: string
                     example: 'DealLeadFirstname2'
@@ -881,7 +881,17 @@ components:
                   title:
                     type: string
                     example: 'Deal Leader'
-
+                  therapeuticAreas:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        name:
+                          type: string
+                          example: 'CRM'
     DealsListResponse:
       type: object
       properties:
