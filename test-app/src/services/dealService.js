@@ -144,6 +144,10 @@ class DealService extends baseService {
     let transaction;
     try {
       transaction = await sequelize.transaction();
+      // fetching the request body data
+      const { name, stage, therapeuticArea, userId, dealLead } = data;
+
+      let newDealLead = dealLead;
 
       // check if deal exists
       const deal = await Deal.findByPk(dealId);
@@ -166,11 +170,6 @@ class DealService extends baseService {
           statusCodes.CONFLICT
         );
       }
-
-      // fetching the request body data
-      const { name, stage, therapeuticArea, userId, dealLead } = data;
-
-      let newDealLead = dealLead;
 
       // check if user(system admin) exists
       const user = await User.findByPk(userId);
