@@ -27,6 +27,15 @@ class ResourceService extends BaseService {
     try {
       transaction = await sequelize.transaction();
 
+      // Validate if the deal exists and is not deleted
+      const deal = await Deal.findOne({
+        where: { id: dealId, isDeleted: false },
+        transaction
+      });
+      if (!deal) {
+        throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
+      }
+
       // Fetch the user adding the resources and validate their role
       const currentUser = await User.findByPk(userId, { transaction });
       if (!currentUser) {
@@ -45,15 +54,6 @@ class ResourceService extends BaseService {
             statusCodes.UNAUTHORIZED
           );
         }
-      }
-
-      // Validate if the deal exists and is not deleted
-      const deal = await Deal.findOne({
-        where: { id: dealId, isDeleted: false },
-        transaction
-      });
-      if (!deal) {
-        throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
       }
 
       for (const resource of resources) {
