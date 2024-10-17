@@ -6,7 +6,7 @@ const {
 
 // Middleware to validate the deleteDeal request
 const validateDeleteResourceSchema = (req, res, next) => {
-  const { error } = deleteResourceRequest.body.validate(req.body);
+  const { error } = deleteResourceRequest.validate(req.body);
 
   if (error) {
     return res
