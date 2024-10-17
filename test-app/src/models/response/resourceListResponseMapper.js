@@ -1,7 +1,7 @@
 class ResourceListResponseMapper {
   constructor(resourceDeal, index) {
     this.id = resourceDeal.userId;
-    this.record = index + 1; // needed for pagination on UI
+    this.recordId = index + 1; // needed for pagination on UI
     this.lineFunction = resourceDeal.resourceInfo?.associatedLineFunction
       ? {
           id: resourceDeal.resourceInfo.associatedLineFunction.id,
