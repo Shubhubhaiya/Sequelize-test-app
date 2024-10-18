@@ -789,7 +789,7 @@ class ResourceService extends BaseService {
       }
 
       // If the email matches, simply update DealWiseResourceInfo
-      if (existingResource.email === email) {
+      if (existingResource.email.toLowerCase() === email.toLowerCase()) {
         await DealWiseResourceInfo.update(
           {
             lineFunction,
