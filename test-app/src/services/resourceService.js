@@ -205,6 +205,14 @@ class ResourceService extends BaseService {
     const { page = 1, limit = 10 } = query;
 
     try {
+      // Validate if the deal exists and is not deleted
+      const deal = await Deal.findOne({
+        where: { id: dealId, isDeleted: false }
+      });
+      if (!deal) {
+        throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
+      }
+
       const offset = (page - 1) * limit;
 
       // Base where clause for ResourceDealMapping
@@ -565,6 +573,15 @@ class ResourceService extends BaseService {
     try {
       transaction = await sequelize.transaction();
 
+      // Validate if the deal exists and is not deleted
+      const deal = await Deal.findOne({
+        where: { id: dealId, isDeleted: false },
+        transaction
+      });
+      if (!deal) {
+        throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
+      }
+
       // Check if the user exists and fetch their details
       const currentUser = await User.findByPk(userId);
       if (!currentUser) {
@@ -646,6 +663,14 @@ class ResourceService extends BaseService {
 
   async getResourceDetail(resourceId, dealId, stageId) {
     try {
+      // Validate if the deal exists and is not deleted
+      const deal = await Deal.findOne({
+        where: { id: dealId, isDeleted: false }
+      });
+      if (!deal) {
+        throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
+      }
+
       // Fetch the resource details by resourceId and dealId
       const resource = await ResourceDealMapping.findOne({
         where: {
