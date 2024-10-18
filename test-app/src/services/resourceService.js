@@ -707,6 +707,224 @@ class ResourceService extends BaseService {
       errorHandler.handle(error);
     }
   }
+
+  async updateResource(dealId, stageId, userId, resourceData) {
+    let transaction;
+    try {
+      transaction = await sequelize.transaction();
+
+      const {
+        resourceId,
+        email,
+        vdrAccessRequested,
+        webTrainingStatus,
+        oneToOneDiscussion,
+        optionalColumn,
+        isCoreTeamMember,
+        lineFunction
+      } = resourceData;
+
+      // Validate if the deal exists and is not deleted
+      const deal = await Deal.findOne({
+        where: { id: dealId, isDeleted: false },
+        transaction
+      });
+      if (!deal) {
+        throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
+      }
+
+      // Fetch the user performing the update
+      const currentUser = await User.findByPk(userId, { transaction });
+      if (!currentUser) {
+        throw new CustomError('User not found', statusCodes.BAD_REQUEST);
+      }
+
+      // Deal Lead can only update resources for deals they lead
+      if (currentUser.roleId === roles.DEAL_LEAD) {
+        const dealLeadMapping = await DealLeadMapping.findOne({
+          where: { userId: currentUser.id, dealId, isDeleted: false },
+          transaction
+        });
+        if (!dealLeadMapping) {
+          throw new CustomError(
+            'Deal Leads can only update resources in their own deals',
+            statusCodes.UNAUTHORIZED
+          );
+        }
+      }
+
+      // Fetch the existing resource by resourceId
+      const existingResource = await User.findOne({
+        where: { id: resourceId },
+        transaction
+      });
+
+      if (!existingResource) {
+        throw new CustomError('Resource not found', statusCodes.NOT_FOUND);
+      }
+
+      // If the email matches, simply update DealWiseResourceInfo
+      if (existingResource.email === email) {
+        await DealWiseResourceInfo.update(
+          {
+            lineFunction,
+            vdrAccessRequested,
+            webTrainingStatus,
+            oneToOneDiscussion,
+            optionalColumn,
+            isCoreTeamMember,
+            modifiedBy: userId
+          },
+          { where: { dealId, resourceId }, transaction }
+        );
+      } else {
+        // Handle case where the resource is being replaced
+
+        // Step 1: Remove old resource mapping from the stage
+        const oldResourceMapping = await ResourceDealMapping.findOne({
+          where: {
+            dealId,
+            dealStageId: stageId,
+            userId: resourceId,
+            isDeleted: false
+          },
+          transaction
+        });
+
+        if (!oldResourceMapping) {
+          throw new CustomError(
+            'Resource not found in this stage of the deal',
+            statusCodes.NOT_FOUND
+          );
+        }
+
+        await oldResourceMapping.update(
+          { isDeleted: true, modifiedBy: userId },
+          { transaction }
+        );
+
+        // Step 2: Check if the old resource is still part of any other stages within the deal
+        const remainingStages = await ResourceDealMapping.findAll({
+          where: {
+            dealId,
+            userId: resourceId,
+            isDeleted: false
+          },
+          transaction
+        });
+
+        if (remainingStages.length === 0) {
+          // If the old resource is not part of any other stage, delete DealWiseResourceInfo
+          await DealWiseResourceInfo.destroy({
+            where: { dealId, resourceId },
+            transaction
+          });
+        }
+
+        // Step 3: Find the new resource by email
+        const newResource = await User.findOne({
+          where: { email: { [Sequelize.Op.iLike]: email } },
+          transaction
+        });
+
+        // if new resource not found in our system
+        // then check in active directory
+        // return error if not found there also
+        // if found insert entry in user table and then use it's id
+
+        if (!newResource) {
+          throw new CustomError(
+            `New resource with email ${email} not found!`,
+            statusCodes.NOT_FOUND
+          );
+        }
+
+        // Step 4: Check if the new resource already has DealWiseResourceInfo for this deal
+        const newResourceDealInfo = await DealWiseResourceInfo.findOne({
+          where: { dealId, resourceId: newResource.id },
+          transaction
+        });
+
+        if (newResourceDealInfo) {
+          // Update the new resource's DealWiseResourceInfo
+          await newResourceDealInfo.update(
+            {
+              vdrAccessRequested,
+              webTrainingStatus,
+              oneToOneDiscussion,
+              optionalColumn,
+              isCoreTeamMember,
+              lineFunction,
+              modifiedBy: userId
+            },
+            { transaction }
+          );
+        } else {
+          // Create a new DealWiseResourceInfo entry for the new resource
+          await DealWiseResourceInfo.create(
+            {
+              dealId,
+              resourceId: newResource.id,
+              lineFunction,
+              vdrAccessRequested,
+              webTrainingStatus,
+              oneToOneDiscussion,
+              optionalColumn,
+              isCoreTeamMember,
+              createdBy: userId,
+              modifiedBy: userId
+            },
+            { transaction }
+          );
+        }
+
+        // Step 5: Check if the new resource already has a mapping for this stage
+        const existingMappingNewResource = await ResourceDealMapping.findOne({
+          where: {
+            dealId,
+            dealStageId: stageId,
+            userId: newResource.id
+          },
+          transaction
+        });
+
+        if (existingMappingNewResource) {
+          if (existingMappingNewResource.isDeleted) {
+            // If mapping exists but is deleted, reactivate it by setting `isDeleted` to false
+            await existingMappingNewResource.update(
+              { isDeleted: false, createdBy: userId, modifiedBy: userId },
+              { transaction }
+            );
+          } else {
+            throw new CustomError(
+              `Resource with email ${email} already part of this stage`,
+              statusCodes.CONFLICT
+            );
+          }
+        } else {
+          // Step 6: Add the new resource mapping to ResourceDealMapping for this stage
+          await ResourceDealMapping.create(
+            {
+              userId: newResource.id,
+              dealId,
+              dealStageId: stageId,
+              isDeleted: false,
+              createdBy: userId,
+              modifiedBy: userId
+            },
+            { transaction }
+          );
+        }
+      }
+
+      // Commit the transaction
+      await transaction.commit();
+      return apiResponse.success(null, null, 'Resource updated successfully');
+    } catch (error) {
+      if (transaction) await transaction.rollback();
+      errorHandler.handle(error);
+    }
+  }
 }
 
 module.exports = new ResourceService();

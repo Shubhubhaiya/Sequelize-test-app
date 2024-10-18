@@ -4,7 +4,7 @@ info:
   version: 1.0.0
   description: API documentation for S&G Mercator resource management.
 servers:
-  - url: 'http://localhost:5000/api'
+  - url: 'http://localhost:5001/api'
     description: Development server
 
 paths:
@@ -297,6 +297,12 @@ paths:
           schema:
             type: integer
           description: The ID of the deal to be deleted.
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: integer
+          description: The ID of the user performing the delete operation.
       responses:
         200:
           description: Deal successfully deleted.
@@ -616,6 +622,49 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /resources/update:
+    put:
+      summary: Update a resource in a deal stage
+      description: Update a resource's information within a deal stage, or replace the resource if a new email is provided.
+      tags:
+        - Resources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResourceRequest'
+      responses:
+        200:
+          description: Resource updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        400:
+          description: Bad Request - Validation error or missing required data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        404:
+          description: Not Found - Deal or resource not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        409:
+          description: Conflict - Resource already exists in this stage
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        500:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
     LineFunction:
@@ -1333,3 +1382,52 @@ components:
               type: string
               example: 'Triage'
               description: Stage name.
+
+    UpdateResourceRequest:
+      type: object
+      required:
+        - dealId
+        - stageId
+        - userId
+        - resourceData
+      properties:
+        dealId:
+          type: integer
+          example: 1
+        stageId:
+          type: integer
+          example: 2
+        userId:
+          type: integer
+          example: 10
+        resourceData:
+          type: object
+          properties:
+            resourceId:
+              type: integer
+              example: 123
+            email:
+              type: string
+              example: 'new.resource@example.com'
+            vdrAccessRequested:
+              type: boolean
+              example: true
+            webTrainingStatus:
+              type: string
+              enum:
+                - Not Started
+                - In-progress
+                - Completed
+              example: 'In-progress'
+            oneToOneDiscussion:
+              type: string
+              example: 'Discussion notes here'
+            optionalColumn:
+              type: string
+              example: 'Additional information'
+            isCoreTeamMember:
+              type: boolean
+              example: true
+            lineFunction:
+              type: integer
+              example: 101

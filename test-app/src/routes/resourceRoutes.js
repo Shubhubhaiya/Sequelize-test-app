@@ -5,6 +5,7 @@ const validateAddResourceSchema = require('../middleware/validateAddResourceRequ
 const validateResourceListSchema = require('../middleware/validateResourceListRequest');
 const validateDeleteResourceSchema = require('../middleware/validateDeleteResourceRequest');
 const validateResourceDetailSchema = require('../middleware/validateResourceDetailRequest');
+const validateUpdateResourceSchema = require('../middleware/validateUpdateResourceRequest');
 
 // Add resource to a deal
 router.post('/add', validateAddResourceSchema, resourceController.addResource);
@@ -28,6 +29,13 @@ router.delete(
   '/delete',
   validateDeleteResourceSchema,
   resourceController.deleteResource
+);
+
+// Route for updating resource in a deal stage
+router.put(
+  '/update',
+  validateUpdateResourceSchema,
+  resourceController.updateResource
 );
 
 module.exports = router;

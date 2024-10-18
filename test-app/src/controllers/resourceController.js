@@ -92,9 +92,26 @@ const getResourceDetail = async (req, res, next) => {
     next(error);
   }
 };
+
+// Update resource
+const updateResource = async (req, res, next) => {
+  try {
+    const { dealId, stageId, resourceData, userId } = req.body;
+    const result = await resourceService.updateResource(
+      dealId,
+      stageId,
+      userId,
+      resourceData
+    );
+    return res.status(statusCodes.SUCCESS).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
 module.exports = {
   addResource,
   listResources,
   deleteResource,
-  getResourceDetail
+  getResourceDetail,
+  updateResource
 };
