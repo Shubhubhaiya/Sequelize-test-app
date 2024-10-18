@@ -346,7 +346,7 @@ class DealService extends baseService {
     try {
       // Fetch the deal along with the related models (Stage, TherapeuticArea, DealLead, and their TherapeuticAreas)
       const deal = await Deal.findOne({
-        where: { id: dealId },
+        where: { id: dealId, isDeleted: false },
         include: [
           {
             model: Stage,
