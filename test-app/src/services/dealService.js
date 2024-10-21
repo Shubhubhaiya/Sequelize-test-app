@@ -6,6 +6,7 @@ const {
   DealLeadMapping,
   DealWiseResourceInfo,
   ResourceDealMapping,
+  DealStageLog,
   sequelize,
   Sequelize
 } = require('../database/models');
@@ -144,9 +145,9 @@ class DealService extends baseService {
     let transaction;
     try {
       transaction = await sequelize.transaction();
+
       // fetching the request body data
       const { name, stage, therapeuticArea, userId, dealLead } = data;
-
       let newDealLead = dealLead;
 
       // check if deal exists
@@ -155,7 +156,7 @@ class DealService extends baseService {
         throw new CustomError('Deal not found.', statusCodes.NOT_FOUND);
       }
 
-      //Check if any other deal with same name exists
+      // Check if any other deal with the same name exists
       const isDealWithSameNameExists = await Deal.findOne({
         where: {
           name: { [Sequelize.Op.iLike]: name },
@@ -185,7 +186,7 @@ class DealService extends baseService {
         );
       }
 
-      // Validate deallead existance and role
+      // Validate deal lead existence and role
       const dealLeadResponse = await User.findByPk(newDealLead);
       if (!dealLeadResponse) {
         throw new CustomError('Deal lead not found.', statusCodes.BAD_REQUEST);
@@ -193,12 +194,12 @@ class DealService extends baseService {
 
       if (dealLeadResponse.roleId !== roles.DEAL_LEAD) {
         throw new CustomError(
-          'Deal can only assigned to deal lead.',
+          'Deal can only be assigned to a deal lead.',
           statusCodes.BAD_REQUEST
         );
       }
 
-      // check if stage and therapeurtic area exists
+      // check if stage and therapeutic area exist
       const [isStageExists, isTherapeuticAreaExist] = await Promise.all([
         Stage.findByPk(stage),
         TherapeuticArea.findByPk(therapeuticArea)
@@ -215,6 +216,18 @@ class DealService extends baseService {
         );
       }
 
+      // Log the stage change if stage is different
+      if (deal.currentStage !== stage) {
+        await DealStageLog.create(
+          {
+            dealId: deal.id,
+            stageId: stage, // Log the new stage ID
+            startDate: new Date() // Start date of the new stage
+          },
+          { transaction }
+        );
+      }
+
       // update the deal
       await deal.update(
         {
@@ -226,7 +239,7 @@ class DealService extends baseService {
         { transaction }
       );
 
-      // check who is active deal lead of deal
+      // check who is the active deal lead of the deal
       const activeDealLeadMapping = await DealLeadMapping.findOne({
         where: { dealId, isDeleted: false }
       });
