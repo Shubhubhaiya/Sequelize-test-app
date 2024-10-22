@@ -115,6 +115,16 @@ class DealService extends baseService {
         { transaction }
       );
 
+      // Log the stage
+      await DealStageLog.create(
+        {
+          dealId: newDeal.id,
+          stageId: stage, // Log the new stage ID
+          startDate: new Date() // Start date of the stage
+        },
+        { transaction }
+      );
+
       // If dealLead is valid, create the mapping
 
       await DealLeadMapping.create(
