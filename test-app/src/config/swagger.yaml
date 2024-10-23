@@ -520,18 +520,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
-  /resources/delete:
+  /resources/{resourceId}/stage/{stageId}/deal/{dealId}:
     delete:
       summary: Soft delete a resource from a stage of a deal
       description: Soft delete a resource from a specific stage of a deal. Deal leads can only delete resources from their own deals, while system admins have full access.
       tags:
         - Resources
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DeleteResourceRequest'
+      parameters:
+        - in: path
+          name: resourceId
+          required: true
+          schema:
+            type: integer
+            example: 7
+          description: The ID of the resource to delete.
+        - in: path
+          name: stageId
+          required: true
+          schema:
+            type: integer
+            example: 5
+          description: The ID of the stage within the deal.
+        - in: path
+          name: dealId
+          required: true
+          schema:
+            type: integer
+            example: 1
+          description: The ID of the deal.
+        - in: query
+          name: userId
+          required: true
+          schema:
+            type: integer
+            example: 1
+          description: The ID of the user performing the delete operation.
       responses:
         200:
           description: Resource deleted successfully.
@@ -1207,31 +1230,6 @@ components:
           type: integer
           example: 10
           description: Number of records per page.
-
-    DeleteResourceRequest:
-      type: object
-      required:
-        - dealId
-        - stageId
-        - resourceId
-        - userId
-      properties:
-        dealId:
-          type: integer
-          example: 1
-          description: The ID of the deal.
-        stageId:
-          type: integer
-          example: 2
-          description: The ID of the stage within the deal.
-        resourceId:
-          type: integer
-          example: 3
-          description: The ID of the resource to delete.
-        userId:
-          type: integer
-          example: 4
-          description: The ID of the user performing the delete operation.
 
     ResourceDetail:
       type: object
