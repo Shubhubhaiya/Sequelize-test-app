@@ -11,6 +11,11 @@ const addResource = async (req, res, next) => {
 
     // Call the service to add the resource(s)
     const result = await resourceService.addResource(dealId, userId, resources);
+
+    // If there are failed resources, return a 400 Bad Request
+    if (result.failedResources && result.failedResources.length > 0) {
+      return res.status(statusCodes.SERVER_ERROR).json(result);
+    }
     return res.status(statusCodes.CREATED).json(result);
   } catch (error) {
     next(error);

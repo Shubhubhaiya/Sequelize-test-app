@@ -24,7 +24,6 @@ class ResourceService extends BaseService {
   }
   async addResource(dealId, userId, resources) {
     const failedResources = [];
-    const insertedResources = [];
     let transaction;
 
     try {
@@ -195,7 +194,6 @@ class ResourceService extends BaseService {
 
           // Commit transaction for this resource
           await individualTransaction.commit();
-          insertedResources.push(resource);
         } catch (error) {
           // Rollback individual resource transaction
           if (individualTransaction) await individualTransaction.rollback();
@@ -207,19 +205,13 @@ class ResourceService extends BaseService {
 
       // Return different responses based on whether there are failed resources
       if (failedResources.length > 0) {
-        return apiResponse.success(
-          {
-            insertedResources,
-            failedResources
-          },
-          null,
-          'Some resources failed to be added'
-        );
+        return {
+          message: 'Some resources failed to be added',
+          failedResources
+        };
       } else {
         return apiResponse.success(
-          {
-            insertedResources
-          },
+          null,
           null,
           'Resource(s) added successfully'
         );
