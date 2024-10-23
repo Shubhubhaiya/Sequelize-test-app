@@ -23,7 +23,10 @@ class ResourceService extends BaseService {
     super(ResourceDealMapping);
   }
   async addResource(dealId, userId, resources) {
+    const failedResources = [];
+    const insertedResources = [];
     let transaction;
+
     try {
       transaction = await sequelize.transaction();
 
@@ -42,7 +45,6 @@ class ResourceService extends BaseService {
         throw new CustomError('User not found', statusCodes.BAD_REQUEST);
       }
 
-      // Deal Lead can only add resources to deals they lead
       if (currentUser.roleId === roles.DEAL_LEAD) {
         const dealLeadMapping = await DealLeadMapping.findOne({
           where: { userId: currentUser.id, dealId, isDeleted: false },
@@ -56,144 +58,172 @@ class ResourceService extends BaseService {
         }
       }
 
-      for (const resource of resources) {
-        const {
-          email,
-          lineFunction,
-          stages,
-          vdrAccessRequested,
-          webTrainingStatus,
-          isCoreTeamMember,
-          oneToOneDiscussion,
-          optionalColumn
-        } = resource;
+      // Iterate through each resource and handle the transaction for each
+      for (const [index, resource] of resources.entries()) {
+        let individualTransaction;
+        try {
+          individualTransaction = await sequelize.transaction();
 
-        // Validate line function
-        const lineFunctionExists = await LineFunction.findByPk(lineFunction, {
-          transaction
-        });
-        if (!lineFunctionExists) {
-          throw new CustomError(
-            `Line Function with ID ${lineFunction} not found`,
-            statusCodes.BAD_REQUEST
-          );
-        }
+          const {
+            email,
+            lineFunction,
+            stages,
+            vdrAccessRequested,
+            webTrainingStatus,
+            isCoreTeamMember,
+            oneToOneDiscussion,
+            optionalColumn
+          } = resource;
 
-        // Validate stages
-        const validStages = await Stage.findAll({
-          where: { id: stages },
-          transaction
-        });
-        const foundStageIds = validStages.map((stage) => stage.id);
-        const invalidStages = stages.filter(
-          (stageId) => !foundStageIds.includes(stageId)
-        );
-        if (invalidStages.length > 0) {
-          throw new CustomError(
-            `Invalid stage(s): ${invalidStages.join(', ')}`,
-            statusCodes.BAD_REQUEST
-          );
-        }
-
-        // Search for the resource by email
-        let user = await User.findOne({
-          where: { email: { [Sequelize.Op.iLike]: email } },
-          transaction
-        });
-
-        if (!user) {
-          // TODO
-          // search user from active directory if not found return error
-          throw new CustomError(
-            `Resource with email ${email} not found!`,
-            statusCodes.BAD_REQUEST
-          );
-        }
-
-        // Check if resource is already assigned to the same deal and stage
-        for (const stageId of stages) {
-          const existingMapping = await ResourceDealMapping.findOne({
-            where: {
-              userId: user.id,
-              dealId: dealId,
-              dealStageId: stageId
-            },
-            transaction
+          // Validate line function
+          const lineFunctionExists = await LineFunction.findByPk(lineFunction, {
+            transaction: individualTransaction
           });
+          if (!lineFunctionExists) {
+            throw new CustomError(
+              `Line Function with ID ${lineFunction} not found`,
+              statusCodes.BAD_REQUEST
+            );
+          }
 
-          // Fetch the stage name for the error message
-          const stage = await Stage.findByPk(stageId, { transaction });
+          // Validate stages
+          const validStages = await Stage.findAll({
+            where: { id: stages },
+            transaction: individualTransaction
+          });
+          const foundStageIds = validStages.map((stage) => stage.id);
+          const invalidStages = stages.filter(
+            (stageId) => !foundStageIds.includes(stageId)
+          );
+          if (invalidStages.length > 0) {
+            throw new CustomError(
+              `Invalid stage(s): ${invalidStages.join(', ')}`,
+              statusCodes.BAD_REQUEST
+            );
+          }
 
-          if (existingMapping) {
-            if (existingMapping.isDeleted) {
-              // If the resource was deleted, update `isDeleted` to false
-              await existingMapping.update(
-                { isDeleted: false, createdBy: userId, modifiedBy: userId },
-                { transaction }
-              );
+          // Search for the resource by email
+          let user = await User.findOne({
+            where: { email: { [Sequelize.Op.iLike]: email } },
+            transaction: individualTransaction
+          });
+          if (!user) {
+            throw new CustomError(
+              `Resource with email ${email} not found!`,
+              statusCodes.BAD_REQUEST
+            );
+          }
+
+          // Check if resource is already assigned to the same deal and stage
+          for (const stageId of stages) {
+            const existingMapping = await ResourceDealMapping.findOne({
+              where: {
+                userId: user.id,
+                dealId: dealId,
+                dealStageId: stageId
+              },
+              transaction: individualTransaction
+            });
+
+            const stage = await Stage.findByPk(stageId, {
+              transaction: individualTransaction
+            });
+
+            if (existingMapping) {
+              if (existingMapping.isDeleted) {
+                await existingMapping.update(
+                  { isDeleted: false, createdBy: userId, modifiedBy: userId },
+                  { transaction: individualTransaction }
+                );
+              } else {
+                throw new CustomError(
+                  `(${email}) is already part of ${stage.name} stage`,
+                  statusCodes.CONFLICT
+                );
+              }
             } else {
-              // If resource is already part of the same stage and deal, return an error
-              throw new CustomError(
-                `Resource (${email}) is already part of ${stage.name} stage`,
-                statusCodes.CONFLICT
+              await ResourceDealMapping.create(
+                {
+                  userId: user.id,
+                  dealId,
+                  dealStageId: stageId,
+                  isDeleted: false,
+                  createdBy: userId,
+                  modifiedBy: userId
+                },
+                { transaction: individualTransaction }
               );
             }
-          } else {
-            // Insert resource mapping with stages in ResourceDealMapping
-            await ResourceDealMapping.create(
+          }
+
+          // Insert or update resource data in DealWiseResourceInfo table
+          const existingResourceInfo = await DealWiseResourceInfo.findOne({
+            where: { dealId, resourceId: user.id },
+            transaction: individualTransaction
+          });
+
+          if (existingResourceInfo) {
+            await existingResourceInfo.update(
               {
-                userId: user.id,
+                vdrAccessRequested,
+                webTrainingStatus,
+                oneToOneDiscussion,
+                optionalColumn,
+                isCoreTeamMember,
+                lineFunction,
+                modifiedBy: userId
+              },
+              { transaction: individualTransaction }
+            );
+          } else {
+            await DealWiseResourceInfo.create(
+              {
                 dealId,
-                dealStageId: stageId,
-                isDeleted: false,
+                resourceId: user.id,
+                lineFunction,
+                vdrAccessRequested,
+                webTrainingStatus,
+                oneToOneDiscussion,
+                optionalColumn,
+                isCoreTeamMember,
                 createdBy: userId,
                 modifiedBy: userId
               },
-              { transaction }
+              { transaction: individualTransaction }
             );
           }
-        }
 
-        // Insert or update resource data in DealWiseResourceInfo table
-        const existingResourceInfo = await DealWiseResourceInfo.findOne({
-          where: { dealId, resourceId: user.id },
-          transaction
-        });
+          // Commit transaction for this resource
+          await individualTransaction.commit();
+          insertedResources.push(resource);
+        } catch (error) {
+          // Rollback individual resource transaction
+          if (individualTransaction) await individualTransaction.rollback();
 
-        if (existingResourceInfo) {
-          await existingResourceInfo.update(
-            {
-              vdrAccessRequested,
-              webTrainingStatus,
-              oneToOneDiscussion,
-              optionalColumn,
-              isCoreTeamMember,
-              lineFunction,
-              modifiedBy: userId
-            },
-            { transaction }
-          );
-        } else {
-          await DealWiseResourceInfo.create(
-            {
-              dealId,
-              resourceId: user.id,
-              lineFunction,
-              vdrAccessRequested,
-              webTrainingStatus,
-              oneToOneDiscussion,
-              optionalColumn,
-              isCoreTeamMember,
-              createdBy: userId,
-              modifiedBy: userId
-            },
-            { transaction }
-          );
+          // Log the failure resource with number
+          failedResources.push(`resource ${index + 1}: ${error.message}`);
         }
       }
 
-      await transaction.commit();
-      return apiResponse.success(null, null, 'Resource(s) added successfully');
+      // Return different responses based on whether there are failed resources
+      if (failedResources.length > 0) {
+        return apiResponse.success(
+          {
+            insertedResources,
+            failedResources
+          },
+          null,
+          'Some resources failed to be added'
+        );
+      } else {
+        return apiResponse.success(
+          {
+            insertedResources
+          },
+          null,
+          'Resource(s) added successfully'
+        );
+      }
     } catch (error) {
       if (transaction) await transaction.rollback();
       errorHandler.handle(error);
