@@ -1,5 +1,5 @@
-require('dotenv').config(); // To load environment variables
-const axios = require('axios'); // For making HTTP requests
+require('dotenv').config();
+const axios = require('axios');
 const querystring = require('querystring');
 
 // Build the OAuth authorization URL
@@ -24,6 +24,10 @@ const queryString = querystring.stringify(params);
 // Full authorization URL
 const fullUrl = `${authUrl}?${queryString}`;
 
+// Log the cURL request
+const curlCommand = `curl -X GET "${fullUrl}" -H "Accept: application/json"`;
+console.log(`Generated cURL command: ${curlCommand}`);
+
 // Function to make the request using axios
 async function testSSO() {
   try {
@@ -35,13 +39,17 @@ async function testSSO() {
       }
     });
 
+    // If you get 302 (redirect), it's working; else, log unexpected status
     if (response.status === 302) {
       console.log('SSO Information is valid! Received a redirect response.');
       console.log(`Redirect URL: ${response.headers.location}`);
-    } else {
+    } else if (response.status === 200) {
       console.log(
-        `Unexpected status code: ${response.status}. SSO information might not be valid.`
+        'Unexpected 200 OK status. SSO might not be configured correctly.'
       );
+      console.log('Response data (check for errors):', response.data);
+    } else {
+      console.log(`Unexpected status code: ${response.status}.`);
     }
   } catch (error) {
     if (error.response && error.response.status === 302) {
