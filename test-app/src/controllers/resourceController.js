@@ -1,5 +1,4 @@
 const statusCodes = require('../config/statusCodes');
-const { addResourceRequest } = require('../models/request/addResourceRequest');
 const resourceService = require('../services/resourceService');
 const apiResponse = require('../utils/apiResponse');
 

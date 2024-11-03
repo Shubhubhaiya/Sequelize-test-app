@@ -1,17 +1,16 @@
 const {
   TherapeuticArea,
   User,
+  Deal,
   UserTherapeuticAreas,
   sequelize,
   Sequelize
 } = require('../database/models');
 
 const baseService = require('./baseService');
-const apiResponse = require('../utils/apiResponse');
 const roles = require('../config/roles');
 const statusCodes = require('../config/statusCodes');
 const CustomError = require('../utils/customError');
-const responseMessages = require('../config/responseMessages');
 const errorHandler = require('../utils/errorHandler');
 
 class TherapeuticAreaService extends baseService {
@@ -156,6 +155,94 @@ class TherapeuticAreaService extends baseService {
 
       // Handle errors using the custom error handler
       errorHandler.handle(error);
+    }
+  }
+
+  async unassignTherapeuticArea(adminUserId, dealLeadId, therapeuticAreaId) {
+    let transaction;
+
+    try {
+      // Start the transaction
+      transaction = await sequelize.transaction();
+
+      // Check if admin exists and has the SYSTEM_ADMIN role
+      const adminUser = await User.findByPk(adminUserId);
+      if (!adminUser || adminUser.roleId !== roles.SYSTEM_ADMIN) {
+        throw new CustomError(
+          'Only System Admin can unassign Therapeutic Areas.',
+          statusCodes.UNAUTHORIZED
+        );
+      }
+
+      // Check if the deal lead exists
+      const dealLeadUser = await User.findByPk(dealLeadId);
+      if (!dealLeadUser) {
+        throw new CustomError('Deal lead not found.', statusCodes.NOT_FOUND);
+      }
+
+      // Check if the user is actually a deal lead
+      if (dealLeadUser.roleId !== roles.DEAL_LEAD) {
+        throw new CustomError(
+          'Therapeutic Areas can only be unassigned from Deal Leads.',
+          statusCodes.BAD_REQUEST
+        );
+      }
+
+      // Check if the therapeutic area exists
+      const therapeuticArea = await TherapeuticArea.findByPk(therapeuticAreaId);
+      if (!therapeuticArea) {
+        throw new CustomError(
+          'Therapeutic area not found.',
+          statusCodes.NOT_FOUND
+        );
+      }
+
+      // Check if there are any active deals under this therapeutic area for the deal lead
+      const activeDeals = await Deal.findAll({
+        include: [
+          {
+            model: User,
+            as: 'leadUsers', // Join with User model through DealLeadMapping
+            where: { id: dealLeadId }, // Only include the specified deal lead
+            through: { where: { isDeleted: false } } // Only active lead mappings
+          }
+        ],
+        where: {
+          therapeuticArea: therapeuticAreaId, // Only deals within this therapeutic area
+          isDeleted: false // Only active deals
+        }
+      });
+
+      // If active deals exist, prevent unassignment
+      if (activeDeals.length > 0) {
+        throw new CustomError(
+          'There are active deals under this therapeutic area for deal lead.',
+          statusCodes.CONFLICT
+        );
+      }
+
+      // Proceed to unassign the therapeutic area if no active deals
+      await UserTherapeuticAreas.destroy({
+        where: {
+          userId: dealLeadId,
+          therapeuticAreaId
+        },
+        transaction
+      });
+
+      // Commit the transaction
+      await transaction.commit();
+
+      return { message: 'Therapeutic area unassigned successfully.' };
+    } catch (error) {
+      // Rollback the transaction if it exists
+      if (transaction) {
+        await transaction.rollback();
+      }
+
+      // Handle errors using the custom error handler
+      errorHandler.handle(error);
+      throw error;
     }
   }
 }
