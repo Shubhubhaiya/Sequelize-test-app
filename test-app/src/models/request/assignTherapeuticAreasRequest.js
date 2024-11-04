@@ -12,21 +12,27 @@ const assignTherapeuticAreasRequest = joi
       'number.base': 'Deal lead ID must be a number.',
       'number.integer': 'Deal lead ID must be an integer.'
     }),
-    therapeuticAreaIds: joi
-      .array()
-      .items(joi.number().integer().required())
-      .messages({
-        'array.base': 'Therapeutic Area IDs must be an array.',
-        'any.required': 'Therapeutic Area IDs are required.',
-        'number.base': 'Each Therapeutic Area ID must be a number.',
-        'number.integer': 'Each Therapeutic Area ID must be an integer.'
-      }),
-    unassignTA: joi.array().items(joi.number().integer().required()).messages({
+    therapeuticAreaIds: joi.array().items(joi.number().integer()).messages({
       'array.base': 'Therapeutic Area IDs must be an array.',
-      'any.required': 'Therapeutic Area IDs are required.',
+      'number.base': 'Each Therapeutic Area ID must be a number.',
+      'number.integer': 'Each Therapeutic Area ID must be an integer.'
+    }),
+    unassignTA: joi.array().items(joi.number().integer()).messages({
+      'array.base': 'Therapeutic Area IDs must be an array.',
       'number.base': 'Each Therapeutic Area ID must be a number.',
       'number.integer': 'Each Therapeutic Area ID must be an integer.'
     })
+  })
+  .custom((value, helpers) => {
+    if (
+      (!value.therapeuticAreaIds || value.therapeuticAreaIds.length === 0) &&
+      (!value.unassignTA || value.unassignTA.length === 0)
+    ) {
+      return helpers.message(
+        'You must assign or unassign at least one Therapeutic Area.'
+      );
+    }
+    return value;
   })
   .options({ convert: false }); // Add convert: false to prevent coercion
 
