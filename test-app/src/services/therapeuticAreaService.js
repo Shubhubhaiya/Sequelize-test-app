@@ -168,7 +168,7 @@ class TherapeuticAreaService extends baseService {
           // If active deals exist, prevent unassignment
           if (activeDeals.length > 0) {
             throw new CustomError(
-              `There are active deals for ${therapeuticArea.name}so can not unassign this.`,
+              `There are active deals for '${therapeuticArea.name}'.`,
               statusCodes.BAD_REQUEST
             );
           }

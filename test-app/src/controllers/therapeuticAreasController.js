@@ -19,12 +19,13 @@ const assignTherapeuticArea = async (req, res, next) => {
     const { adminUserId, dealLeadId, therapeuticAreaIds, unassignTA } =
       req.body;
 
-    const result = await therapeuticAreaService.assignTherapeuticAreas(
-      adminUserId,
-      dealLeadId,
-      therapeuticAreaIds,
-      unassignTA
-    );
+    const result =
+      await therapeuticAreaService.assignOrUnassignTherapeuticAreas(
+        adminUserId,
+        dealLeadId,
+        therapeuticAreaIds,
+        unassignTA
+      );
 
     const successResponse = apiResponse.success(result);
     return res.status(statusCodes.SUCCESS).send(successResponse);
