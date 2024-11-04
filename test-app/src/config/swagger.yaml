@@ -688,6 +688,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+
 components:
   schemas:
     LineFunction:
@@ -812,6 +813,7 @@ components:
         - adminUserId
         - dealLeadId
         - therapeuticAreaIds
+        - unassignTA
       properties:
         adminUserId:
           type: integer
@@ -824,6 +826,12 @@ components:
         therapeuticAreaIds:
           type: array
           description: List of therapeutic area IDs to be assigned.
+          items:
+            type: integer
+          example: [1, 2, 3]
+        unassignTA:
+          type: array
+          description: List of therapeutic area IDs to be un-assigned.
           items:
             type: integer
           example: [1, 2, 3]

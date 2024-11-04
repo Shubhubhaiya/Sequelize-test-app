@@ -16,12 +16,14 @@ const getList = async (req, res, next) => {
 
 const assignTherapeuticArea = async (req, res, next) => {
   try {
-    const { adminUserId, dealLeadId, therapeuticAreaIds } = req.body;
+    const { adminUserId, dealLeadId, therapeuticAreaIds, unassignTA } =
+      req.body;
 
     const result = await therapeuticAreaService.assignTherapeuticAreas(
       adminUserId,
       dealLeadId,
-      therapeuticAreaIds
+      therapeuticAreaIds,
+      unassignTA
     );
 
     const successResponse = apiResponse.success(result);
@@ -31,25 +33,7 @@ const assignTherapeuticArea = async (req, res, next) => {
   }
 };
 
-const unAssignTherapeuticArea = async (req, res, next) => {
-  try {
-    const { adminUserId, dealLeadId, therapeuticAreaId } = req.body;
-
-    const result = await therapeuticAreaService.unassignTherapeuticArea(
-      adminUserId,
-      dealLeadId,
-      therapeuticAreaId
-    );
-
-    const successResponse = apiResponse.success(result);
-    return res.status(statusCodes.SUCCESS).send(successResponse);
-  } catch (error) {
-    next(error);
-  }
-};
-
 module.exports = {
   getList,
-  assignTherapeuticArea,
-  unAssignTherapeuticArea
+  assignTherapeuticArea
 };

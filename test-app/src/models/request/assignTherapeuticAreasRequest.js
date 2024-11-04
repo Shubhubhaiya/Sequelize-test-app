@@ -24,6 +24,19 @@ const assignTherapeuticAreasRequest = joi
         'any.required': 'Therapeutic Area IDs are required.',
         'number.base': 'Each Therapeutic Area ID must be a number.',
         'number.integer': 'Each Therapeutic Area ID must be an integer.'
+      }),
+    unassignTA: joi
+      .array()
+      .items(joi.number().integer().required())
+      .min(1)
+      .required()
+      .messages({
+        'array.base': 'Therapeutic Area IDs must be an array.',
+        'array.min':
+          'Therapeutic Area IDs array must contain at least one item.',
+        'any.required': 'Therapeutic Area IDs are required.',
+        'number.base': 'Each Therapeutic Area ID must be a number.',
+        'number.integer': 'Each Therapeutic Area ID must be an integer.'
       })
   })
   .options({ convert: false }); // Add convert: false to prevent coercion
