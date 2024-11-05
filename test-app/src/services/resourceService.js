@@ -275,78 +275,20 @@ class ResourceService extends BaseService {
         throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
       }
 
-      const offset = (page - 1) * limit;
-
       // Base where clause for ResourceDealMapping
-      const whereClause = { isDeleted: false };
-      const replacements = {};
-      const whereConditions = [`"ResourceDealMapping"."isDeleted" = false`];
+      const whereClause = {
+        isDeleted: false,
+        dealId
+      };
 
-      // Apply dealId filter if provided
-      if (dealId) {
-        whereClause.dealId = dealId;
-        whereConditions.push(`"ResourceDealMapping"."dealId" = :dealId`);
-        replacements.dealId = dealId;
+      // Apply filters directly on ResourceDealMapping
+      if (filters.stage && filters.stage.length > 0) {
+        whereClause.dealStageId = {
+          [Sequelize.Op.in]: filters.stage
+        };
       }
 
-      // Define includes with custom join condition for resourceInfo
-      const include = [
-        {
-          model: DealWiseResourceInfo,
-          as: 'resourceInfo',
-          attributes: [
-            'vdrAccessRequested',
-            'webTrainingStatus',
-            'oneToOneDiscussion',
-            'optionalColumn',
-            'isCoreTeamMember',
-            'lineFunction',
-            'modifiedAt'
-          ],
-          include: [
-            {
-              model: LineFunction,
-              as: 'associatedLineFunction',
-              attributes: ['id', 'name']
-            }
-          ],
-          required: true,
-          on: {
-            [Sequelize.Op.and]: [
-              Sequelize.where(
-                Sequelize.col('ResourceDealMapping.userId'),
-                Sequelize.Op.eq,
-                Sequelize.col('resourceInfo.resourceId')
-              ),
-              Sequelize.where(
-                Sequelize.col('ResourceDealMapping.dealId'),
-                Sequelize.Op.eq,
-                Sequelize.col('resourceInfo.dealId')
-              )
-            ]
-          }
-        },
-        {
-          model: User,
-          as: 'resource',
-          attributes: [
-            'id',
-            'firstName',
-            'lastName',
-            'title',
-            'email',
-            'novartis521ID',
-            'siteCode'
-          ]
-        },
-        {
-          model: Stage,
-          as: 'stage',
-          attributes: ['id', 'name']
-        }
-      ];
-
-      // Apply filters if provided
+      // Apply additional filters if provided
       const resourceInfoWhere = {};
       const resourceWhere = {};
 
@@ -359,10 +301,6 @@ class ResourceService extends BaseService {
         resourceInfoWhere.lineFunction = {
           [Sequelize.Op.in]: filters.lineFunction
         };
-        whereConditions.push(
-          `"resourceInfo"."lineFunction" IN (:lineFunctions)`
-        );
-        replacements.lineFunctions = filters.lineFunction;
       }
 
       // Filter by isCoreTeamMember
@@ -371,10 +309,6 @@ class ResourceService extends BaseService {
         filters.isCoreTeamMember !== undefined
       ) {
         resourceInfoWhere.isCoreTeamMember = filters.isCoreTeamMember;
-        whereConditions.push(
-          `"resourceInfo"."isCoreTeamMember" = :isCoreTeamMember`
-        );
-        replacements.isCoreTeamMember = filters.isCoreTeamMember;
       }
 
       // Filter by VDR Access Requested
@@ -383,188 +317,91 @@ class ResourceService extends BaseService {
         filters.vdrAccessRequested !== undefined
       ) {
         resourceInfoWhere.vdrAccessRequested = filters.vdrAccessRequested;
-        whereConditions.push(
-          `"resourceInfo"."vdrAccessRequested" = :vdrAccessRequested`
-        );
-        replacements.vdrAccessRequested = filters.vdrAccessRequested;
       }
 
-      // Filter by Web Training Status (case-insensitive)
+      // Filter by Web Training Status
       if (filters.webTrainingStatus && filters.webTrainingStatus.length > 0) {
-        const enumStatusValues = filters.webTrainingStatus;
-
-        if (enumStatusValues.length > 0) {
-          resourceInfoWhere.webTrainingStatus = {
-            [Sequelize.Op.in]: enumStatusValues
-          };
-          whereConditions.push(
-            `"resourceInfo"."webTrainingStatus" IN (:enumStatusValues)`
-          );
-          replacements.enumStatusValues = enumStatusValues;
-        }
+        resourceInfoWhere.webTrainingStatus = {
+          [Sequelize.Op.in]: filters.webTrainingStatus
+        };
       }
 
       // Filter by optionalColumn
       if (filters.optionalColumn) {
-        const optionalColumnFilter = filters.optionalColumn;
-        if (optionalColumnFilter !== '') {
-          resourceInfoWhere.optionalColumn = {
-            [Sequelize.Op.iLike]: `%${optionalColumnFilter}%`
-          };
-          whereConditions.push(
-            `"resourceInfo"."optionalColumn" ILIKE :optionalColumnFilter`
-          );
-          replacements.optionalColumnFilter = `%${optionalColumnFilter}%`;
-        }
+        resourceInfoWhere.optionalColumn = {
+          [Sequelize.Op.iLike]: `${filters.optionalColumn}%`
+        };
       }
 
       // Filter by oneToOneDiscussion
       if (filters.oneToOneDiscussion) {
-        const oneToOneDiscussionFilter = filters.oneToOneDiscussion;
-        if (oneToOneDiscussionFilter !== '') {
-          resourceInfoWhere.oneToOneDiscussion = {
-            [Sequelize.Op.iLike]: `%${oneToOneDiscussionFilter}%`
-          };
-          whereConditions.push(
-            `"resourceInfo"."oneToOneDiscussion" ILIKE :oneToOneDiscussionFilter`
-          );
-          replacements.oneToOneDiscussionFilter = `%${oneToOneDiscussionFilter}%`;
-        }
-      }
-
-      // Apply DealWiseResourceInfo filters
-      if (Object.keys(resourceInfoWhere).length > 0) {
-        const resourceInfoInclude = include.find(
-          (inc) => inc.as === 'resourceInfo'
-        );
-        resourceInfoInclude.where = {
-          ...resourceInfoInclude.where,
-          ...resourceInfoWhere
+        resourceInfoWhere.oneToOneDiscussion = {
+          [Sequelize.Op.iLike]: `${filters.oneToOneDiscussion}%`
         };
-        resourceInfoInclude.required = true;
       }
 
       // =====================
-      // Filters on User (resource)
+      // Filters on User
       // =====================
 
       // Filter by name
       if (filters.name) {
-        const nameFilter = filters.name;
-        if (nameFilter !== '') {
-          resourceWhere[Sequelize.Op.or] = [
+        resourceWhere[Sequelize.Op.or] = [
+          {
+            firstName: { [Sequelize.Op.iLike]: `${filters.name}%` }
+          },
+          {
+            lastName: { [Sequelize.Op.iLike]: `${filters.name}%` }
+          },
+          Sequelize.where(
+            Sequelize.fn(
+              'concat',
+              Sequelize.col('firstName'),
+              ' ',
+              Sequelize.col('lastName')
+            ),
             {
-              firstName: { [Sequelize.Op.iLike]: `%${nameFilter}%` }
-            },
-            {
-              lastName: { [Sequelize.Op.iLike]: `%${nameFilter}%` }
-            },
-            Sequelize.where(
-              Sequelize.fn(
-                'concat',
-                Sequelize.col('resource.firstName'),
-                ' ',
-                Sequelize.col('resource.lastName')
-              ),
-              {
-                [Sequelize.Op.iLike]: `%${nameFilter}%`
-              }
-            )
-          ];
-          whereConditions.push(
-            `(("resource"."firstName" ILIKE :nameFilter) OR ("resource"."lastName" ILIKE :nameFilter) OR ("resource"."firstName" || ' ' || "resource"."lastName" ILIKE :nameFilter))`
-          );
-          replacements.nameFilter = `%${nameFilter}%`;
-        }
+              [Sequelize.Op.iLike]: `${filters.name}%`
+            }
+          )
+        ];
       }
 
       // Filter by email
       if (filters.email) {
-        const emailFilter = filters.email;
-        if (emailFilter !== '') {
-          resourceWhere.email = {
-            [Sequelize.Op.iLike]: `%${emailFilter}%`
-          };
-          whereConditions.push(`"resource"."email" ILIKE :emailFilter`);
-          replacements.emailFilter = `%${emailFilter}%`;
-        }
+        resourceWhere.email = {
+          [Sequelize.Op.iLike]: `${filters.email}%`
+        };
       }
 
       // Filter by title
       if (filters.title) {
-        const titleFilter = filters.title;
-        if (titleFilter !== '') {
-          resourceWhere.title = {
-            [Sequelize.Op.iLike]: `%${titleFilter}%`
-          };
-          whereConditions.push(`"resource"."title" ILIKE :titleFilter`);
-          replacements.titleFilter = `%${titleFilter}%`;
-        }
+        resourceWhere.title = {
+          [Sequelize.Op.iLike]: `${filters.title}%`
+        };
       }
 
       // Filter by novartis521ID
       if (filters.novartis521ID) {
-        const idFilter = filters.novartis521ID;
-        if (idFilter !== '') {
-          resourceWhere.novartis521ID = {
-            [Sequelize.Op.iLike]: `%${idFilter}%`
-          };
-          whereConditions.push(
-            `"resource"."novartis521ID" ILIKE :novartis521IDFilter`
-          );
-          replacements.novartis521IDFilter = `%${idFilter}%`;
-        }
+        resourceWhere.novartis521ID = {
+          [Sequelize.Op.iLike]: `${filters.novartis521ID}%`
+        };
       }
 
       // Filter by siteCode
       if (filters.siteCode) {
-        const siteCodeFilter = filters.siteCode;
-        if (siteCodeFilter !== '') {
-          resourceWhere.siteCode = {
-            [Sequelize.Op.iLike]: `%${siteCodeFilter}%`
-          };
-          whereConditions.push(`"resource"."siteCode" ILIKE :siteCodeFilter`);
-          replacements.siteCodeFilter = `%${siteCodeFilter}%`;
-        }
-      }
-
-      // Apply User filters
-      if (Object.keys(resourceWhere).length > 0) {
-        const resourceInclude = include.find((inc) => inc.as === 'resource');
-        resourceInclude.where = {
-          ...resourceInclude.where,
-          ...resourceWhere
+        resourceWhere.siteCode = {
+          [Sequelize.Op.iLike]: `${filters.siteCode}%`
         };
-        resourceInclude.required = true;
-      }
-
-      // Filter by stages
-      if (filters.stage && filters.stage.length > 0) {
-        whereClause.dealStageId = {
-          [Sequelize.Op.in]: filters.stage
-        };
-        whereConditions.push(
-          `"ResourceDealMapping"."dealStageId" IN (:stages)`
-        );
-        replacements.stages = filters.stage;
       }
 
       // Define sorting order
-      const order = [
-        ['userId', 'ASC'],
-        ['dealId', 'ASC'],
-        ['dealStageId', 'ASC'],
-        ['modifiedAt', 'DESC']
-      ];
+      const order = [['modifiedAt', 'DESC']];
 
-      // Execute the data query
-      const data = await ResourceDealMapping.findAll({
+      // Execute the main data query without includes
+      const { count, rows } = await ResourceDealMapping.findAndCountAll({
         where: whereClause,
-        include,
         attributes: [
-          Sequelize.literal(
-            `DISTINCT ON("ResourceDealMapping"."userId", "ResourceDealMapping"."dealId", "ResourceDealMapping"."dealStageId") "ResourceDealMapping".*`
-          ),
           'userId',
           'dealId',
           'dealStageId',
@@ -575,41 +412,105 @@ class ResourceService extends BaseService {
           'modifiedAt'
         ],
         order,
-        limit,
-        offset,
-        raw: true,
-        nest: true
+        distinct: true
       });
 
-      // Map the results to the desired format
-      const resources = ResourceListResponseMapper.mapResourceList(data);
-      // Compile the WHERE conditions into a single string for the count query
-      const whereClauseString = whereConditions.join(' AND ');
+      // Extract unique userIds and dealStageIds from the results
+      const userIds = [...new Set(rows.map((row) => row.userId))];
+      const dealStageIds = [...new Set(rows.map((row) => row.dealStageId))];
 
-      // Execute the count query for pagination
-      const countQuery = `
-          SELECT COUNT(*) FROM (
-            SELECT DISTINCT "ResourceDealMapping"."userId", "ResourceDealMapping"."dealId", "ResourceDealMapping"."dealStageId"
-            FROM "ResourceDealMapping"
-            INNER JOIN "DealWiseResourceInfo" AS "resourceInfo"
-              ON "ResourceDealMapping"."dealId" = "resourceInfo"."dealId"
-              AND "ResourceDealMapping"."userId" = "resourceInfo"."resourceId"
-            LEFT OUTER JOIN "LineFunctions" AS "associatedLineFunction"
-              ON "resourceInfo"."lineFunction" = "associatedLineFunction"."id"
-            LEFT OUTER JOIN "Users" AS "resource"
-              ON "ResourceDealMapping"."userId" = "resource"."id"
-            LEFT OUTER JOIN "Stages" AS "stage"
-              ON "ResourceDealMapping"."dealStageId" = "stage"."id"
-            WHERE ${whereClauseString}
-          ) AS subquery;
-        `;
+      // Fetch associated data separately
+      const [resourceInfos, users, stages] = await Promise.all([
+        // Fetch DealWiseResourceInfo with filters
+        DealWiseResourceInfo.findAll({
+          where: {
+            resourceId: { [Sequelize.Op.in]: userIds },
+            dealId: dealId,
+            ...resourceInfoWhere
+          },
+          include: [
+            {
+              model: LineFunction,
+              as: 'associatedLineFunction',
+              attributes: ['id', 'name']
+            }
+          ]
+        }),
+        // Fetch Users with filters
+        User.findAll({
+          where: {
+            id: { [Sequelize.Op.in]: userIds },
+            ...resourceWhere
+          },
+          attributes: [
+            'id',
+            'firstName',
+            'lastName',
+            'title',
+            'email',
+            'novartis521ID',
+            'siteCode'
+          ]
+        }),
+        // Fetch Stages
+        Stage.findAll({
+          where: { id: { [Sequelize.Op.in]: dealStageIds } },
+          attributes: ['id', 'name']
+        })
+      ]);
 
-      const countResult = await sequelize.query(countQuery, {
-        type: Sequelize.QueryTypes.SELECT,
-        replacements
+      // Map data for easy access
+      const resourceInfoMap = new Map();
+      resourceInfos.forEach((info) => {
+        resourceInfoMap.set(`${info.dealId}-${info.resourceId}`, info);
       });
 
-      const totalRecords = parseInt(countResult[0].count, 10);
+      const userMap = new Map();
+      users.forEach((user) => {
+        userMap.set(user.id, user);
+      });
+
+      const stageMap = new Map();
+      stages.forEach((stage) => {
+        stageMap.set(stage.id, stage);
+      });
+
+      // Assemble the final data
+      const resources = rows
+        .map((row) => {
+          const resourceInfo = resourceInfoMap.get(
+            `${row.dealId}-${row.userId}`
+          );
+          const user = userMap.get(row.userId);
+          const stage = stageMap.get(row.dealStageId);
+
+          // Exclude records if associated data doesn't meet the filters
+          if (!user || !resourceInfo) {
+            return null;
+          }
+
+          return {
+            // Use composite key or another unique identifier
+            id: user.id,
+            recordKey: `${row.userId}-${row.dealId}-${row.dealStageId}`,
+            lineFunction: resourceInfo.associatedLineFunction || null,
+            name: `${user.firstName} ${user.lastName}`,
+            stage: stage || null,
+            title: user.title,
+            email: user.email,
+            vdrAccessRequested: resourceInfo.vdrAccessRequested,
+            webTrainingStatus: resourceInfo.webTrainingStatus,
+            novartis521ID: user.novartis521ID,
+            isCoreTeamMember: resourceInfo.isCoreTeamMember,
+            oneToOneDiscussion: resourceInfo.oneToOneDiscussion,
+            optionalColumn: resourceInfo.optionalColumn,
+            siteCode: user.siteCode
+          };
+        })
+        .filter((resource) => resource !== null);
+
+      // Update count after filters
+      const totalRecords = resources.length;
       const totalPages = Math.ceil(totalRecords / limit);
       const pagination = {
         totalRecords,
@@ -618,11 +519,15 @@ class ResourceService extends BaseService {
         pageSize: limit
       };
 
-      // Return data with pagination if records exist
-      if (resources.length > 0) {
-        return { data: resources, ...pagination };
+      // Paginate the final results
+      const offset = (page - 1) * limit;
+      const paginatedResources = resources.slice(offset, offset + limit);
+
+      // Return data with pagination
+      if (paginatedResources.length > 0) {
+        return { data: paginatedResources, ...pagination };
       } else {
-        return { data: resources };
+        return { data: [], ...pagination };
       }
     } catch (error) {
       console.error(error);
