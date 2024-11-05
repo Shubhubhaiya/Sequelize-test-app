@@ -286,18 +286,15 @@ class ResourceService extends BaseService {
         (await LineFunction.findAll({ transaction })).map((fn) => fn.id)
       );
       const stages = await Stage.findAll({ transaction });
-      const stageIds = new Set(stages.map((stage) => stage.id));
-
-      // Create a map for stage names based on stageId
       const stageNameMap = new Map(
         stages.map((stage) => [stage.id, stage.name])
       );
 
-      // Gather all emails for single user lookup to avoid repetitive queries
+      // Prepare emails and users for lookup to avoid duplicate database calls
       const emails = resources.map((resource) => resource.email.toLowerCase());
       const users = await User.findAll({
         where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), {
-          [Sequelize.Op.in]: emails.map((email) => email.toLowerCase())
+          [Sequelize.Op.in]: emails
         }),
         transaction
       });
@@ -306,7 +303,7 @@ class ResourceService extends BaseService {
         users.map((user) => [user.email.toLowerCase(), user])
       );
 
-      // Retrieve existing mappings and resource info entries for batch processing
+      // Retrieve existing mappings for the current deal
       const userIds = Array.from(emailToUserMap.values()).map(
         (user) => user.id
       );
@@ -314,24 +311,35 @@ class ResourceService extends BaseService {
         where: { userId: userIds, dealId },
         transaction
       });
-      const existingResourceInfos = await DealWiseResourceInfo.findAll({
-        where: { dealId, resourceId: userIds },
-        transaction
-      });
 
-      // Maps for quick lookup of existing mappings and resource info
       const mappingMap = new Map(
         existingMappings.map((mapping) => [
           `${mapping.userId}-${mapping.dealStageId}`,
           mapping
         ])
       );
+
+      const existingResourceInfos = await DealWiseResourceInfo.findAll({
+        where: { dealId, resourceId: userIds },
+        transaction
+      });
+
       const resourceInfoMap = new Map(
-        existingResourceInfos.map((info) => [info.resourceId, info])
+        existingResourceInfos.map((info) => [
+          `${info.dealId}-${info.resourceId}`,
+          info
+        ])
       );
 
       const bulkNewMappings = [];
       const bulkNewResourceInfos = [];
+      const successfullyMappedResources = new Set();
+
+      // Map to keep track of the latest resource details per userId
+      const resourceDetailsMap = new Map();
+
+      // Set to track unique mappings to prevent duplicates
+      const newMappingKeys = new Set();
 
       for (const [index, resource] of resources.entries()) {
         const {
@@ -344,32 +352,9 @@ class ResourceService extends BaseService {
           oneToOneDiscussion,
           optionalColumn
         } = resource;
-        const temporaryMappings = [];
-        let successfulMapping = false;
-        let user;
 
         try {
-          // Validate line function
-          if (!lineFunctionIds.has(lineFunction)) {
-            failedResources.push(
-              `resource ${index + 1}: Invalid Line Function ID ${lineFunction}`
-            );
-            continue;
-          }
-
-          // Validate stages
-          const invalidStages = stages.filter(
-            (stageId) => !stageIds.has(stageId)
-          );
-          if (invalidStages.length > 0) {
-            failedResources.push(
-              `resource ${index + 1}: Invalid stage(s): ${invalidStages.map((id) => stageNameMap.get(id)).join(', ')}`
-            );
-            continue;
-          }
-
-          // Check if user exists
-          user = emailToUserMap.get(email.toLowerCase());
+          const user = emailToUserMap.get(email.toLowerCase());
           if (!user) {
             failedResources.push(
               `resource ${index + 1}: Resource with email ${email} not found`
@@ -377,28 +362,43 @@ class ResourceService extends BaseService {
             continue;
           }
 
-          // Process each stage and check for existing mappings
+          // Validate line function
+          if (!lineFunctionIds.has(lineFunction)) {
+            failedResources.push(
+              `resource ${index + 1}: Invalid Line Function`
+            );
+            continue;
+          }
+
+          let resourceMappingSuccess = false;
+
           for (const stageId of stages) {
             const mappingKey = `${user.id}-${stageId}`;
+
+            // Check if this mapping is already processed in this request
+            if (newMappingKeys.has(mappingKey)) {
+              // Skip adding duplicate mapping
+              continue;
+            }
+
             const existingMapping = mappingMap.get(mappingKey);
 
-            if (existingMapping) {
-              if (!existingMapping.isDeleted) {
-                failedResources.push(
-                  `resource ${index + 1}: ${email} is already part of  '${stageNameMap.get(stageId)}' stage`
-                );
-                continue;
-              } else {
-                // Reactivate deleted mapping
-                await existingMapping.update(
-                  { isDeleted: false, createdBy: userId, modifiedBy: userId },
-                  { transaction }
-                );
-                successfulMapping = true;
-              }
+            if (existingMapping && !existingMapping.isDeleted) {
+              // Resource already part of stage
+              failedResources.push(
+                `resource ${index + 1}: ${email} is already part of '${stageNameMap.get(stageId)}' stage`
+              );
+              continue;
+            } else if (existingMapping) {
+              // Reactivate deleted mapping
+              await existingMapping.update(
+                { isDeleted: false, createdBy: userId, modifiedBy: userId },
+                { transaction }
+              );
+              resourceMappingSuccess = true;
             } else {
-              // Add new mapping for bulk insert if no existing active mapping
-              temporaryMappings.push({
+              // Add new mapping
+              bulkNewMappings.push({
                 userId: user.id,
                 dealId,
                 dealStageId: stageId,
@@ -406,59 +406,59 @@ class ResourceService extends BaseService {
                 createdBy: userId,
                 modifiedBy: userId
               });
-              successfulMapping = true;
+              resourceMappingSuccess = true;
+
+              // Add to newMappingKeys to prevent duplicates
+              newMappingKeys.add(mappingKey);
             }
           }
 
-          // Only update or prepare DealWiseResourceInfo if at least one stage mapping was successful
-          if (successfulMapping) {
-            const existingResourceInfo = resourceInfoMap.get(user.id);
-            if (existingResourceInfo) {
-              // Update if existing info is found
-              await existingResourceInfo.update(
-                {
-                  vdrAccessRequested,
-                  webTrainingStatus,
-                  oneToOneDiscussion,
-                  optionalColumn,
-                  isCoreTeamMember,
-                  lineFunction,
-                  modifiedBy: userId
-                },
-                { transaction }
-              );
-            } else {
-              // Prepare new entry if no existing info found
-              // Ensure `bulkNewResourceInfos` only contains unique `userId` and `dealId` combinations
-              if (
-                !bulkNewResourceInfos.some(
-                  (info) =>
-                    info.resourceId === user.id && info.dealId === dealId
-                )
-              ) {
-                bulkNewResourceInfos.push({
-                  dealId,
-                  resourceId: user.id,
-                  lineFunction,
-                  vdrAccessRequested,
-                  webTrainingStatus,
-                  oneToOneDiscussion,
-                  optionalColumn,
-                  isCoreTeamMember,
-                  createdBy: userId,
-                  modifiedBy: userId
-                });
-              }
-            }
-            bulkNewMappings.push(...temporaryMappings);
+          if (resourceMappingSuccess) {
+            successfullyMappedResources.add(user.id);
+
+            // Store the latest resource details for this userId
+            resourceDetailsMap.set(user.id, {
+              lineFunction,
+              vdrAccessRequested,
+              webTrainingStatus,
+              isCoreTeamMember,
+              oneToOneDiscussion,
+              optionalColumn
+            });
           }
         } catch (error) {
-          // Log failed resource with specific error
           failedResources.push(`resource ${index + 1}: ${error.message}`);
         }
       }
 
-      // Perform bulk insert for all collected new mappings and resource info entries
+      // Update or create DealWiseResourceInfo using the latest details
+      for (const userId of successfullyMappedResources) {
+        const resourceInfoKey = `${dealId}-${userId}`;
+        const existingResourceInfo = resourceInfoMap.get(resourceInfoKey);
+        const resourceDetails = resourceDetailsMap.get(userId);
+
+        if (!resourceDetails) continue; // Should not happen
+
+        if (existingResourceInfo) {
+          await existingResourceInfo.update(
+            {
+              ...resourceDetails,
+              modifiedBy: userId
+            },
+            { transaction }
+          );
+        } else {
+          bulkNewResourceInfos.push({
+            dealId,
+            resourceId: userId,
+            ...resourceDetails,
+            createdBy: userId,
+            modifiedBy: userId
+          });
+        }
+      }
+
+      // Perform bulk insert for new mappings and resource info entries
       if (bulkNewMappings.length > 0) {
         await ResourceDealMapping.bulkCreate(bulkNewMappings, { transaction });
       }
@@ -472,14 +472,9 @@ class ResourceService extends BaseService {
       await transaction.commit();
 
       // Return appropriate response
-      if (failedResources.length > 0) {
-        return {
-          message: 'Some resources failed to be added',
-          failedResources
-        };
-      } else {
-        return apiResponse.success(null, null, 'Resources added successfully');
-      }
+      return failedResources.length > 0
+        ? { message: 'Some resources failed to be added', failedResources }
+        : apiResponse.success(null, null, 'Resources added successfully');
     } catch (error) {
       if (transaction) await transaction.rollback();
       errorHandler.handle(error);
