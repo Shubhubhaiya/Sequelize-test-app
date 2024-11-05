@@ -63,6 +63,8 @@ class ResourceService extends BaseService {
       const allStages = await Stage.findAll({ transaction });
 
       for (const [index, resource] of resources.entries()) {
+        const newlyCreatedMappings = []; // Track only new mappings created for rollback
+        let user;
         try {
           const {
             email,
@@ -101,7 +103,7 @@ class ResourceService extends BaseService {
           }
 
           // Search for the resource by email
-          let user = await User.findOne({
+          user = await User.findOne({
             where: { email: { [Sequelize.Op.iLike]: email } },
             transaction
           });
@@ -120,19 +122,22 @@ class ResourceService extends BaseService {
             });
 
             if (existingMapping) {
-              if (existingMapping.isDeleted) {
+              // If mapping exists and is not marked as deleted, log as failed
+              if (!existingMapping.isDeleted) {
+                failedResources.push(
+                  `resource ${index + 1}: Resource ${email} is already part of stage ${stageId}`
+                );
+                continue;
+              } else {
+                // If the mapping exists but is deleted, reactivate it
                 await existingMapping.update(
                   { isDeleted: false, createdBy: userId, modifiedBy: userId },
                   { transaction }
                 );
-              } else {
-                throw new CustomError(
-                  `(${email}) is already part of ${stage.name} stage`,
-                  statusCodes.CONFLICT
-                );
               }
             } else {
-              await ResourceDealMapping.create(
+              // Create new mapping and add to newly created list for potential rollback
+              const newMapping = await ResourceDealMapping.create(
                 {
                   userId: user.id,
                   dealId,
@@ -143,6 +148,7 @@ class ResourceService extends BaseService {
                 },
                 { transaction }
               );
+              newlyCreatedMappings.push(newMapping);
             }
           }
 
@@ -183,17 +189,36 @@ class ResourceService extends BaseService {
             );
           }
         } catch (error) {
-          // Handle partial rollback for the failed resource
-          await ResourceDealMapping.destroy({
-            where: { dealId, userId: user.id },
-            transaction
-          });
-          await DealWiseResourceInfo.destroy({
-            where: { dealId, resourceId: user.id },
-            transaction
-          });
+          // Roll back only the mappings that were newly created in this operation
+          for (const mapping of newlyCreatedMappings) {
+            await ResourceDealMapping.destroy({
+              where: {
+                id: mapping.id
+              },
+              transaction
+            });
+          }
 
-          // Log failed resource with index and error message
+          // Check if there are remaining mappings for this resource in the deal
+          if (user) {
+            const remainingMappings = await ResourceDealMapping.findAll({
+              where: {
+                userId: user.id,
+                dealId: dealId
+              },
+              transaction
+            });
+
+            // If no remaining mappings, delete the resource's DealWiseResourceInfo entry
+            if (remainingMappings.length === 0) {
+              await DealWiseResourceInfo.destroy({
+                where: { dealId, resourceId: user.id },
+                transaction
+              });
+            }
+          }
+
+          // Log failed resource with specific index and error message
           failedResources.push(`resource ${index + 1}: ${error.message}`);
         }
       }
