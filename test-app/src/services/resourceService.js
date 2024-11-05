@@ -27,6 +27,7 @@ class ResourceService extends BaseService {
     let transaction;
 
     try {
+      // Start a single transaction
       transaction = await sequelize.transaction();
 
       // Validate if the deal exists and is not deleted
@@ -57,12 +58,12 @@ class ResourceService extends BaseService {
         }
       }
 
-      // Iterate through each resource and handle the transaction for each
-      for (const [index, resource] of resources.entries()) {
-        let individualTransaction;
-        try {
-          individualTransaction = await sequelize.transaction();
+      // Bulk fetch to avoid repetitive querying
+      const allLineFunctions = await LineFunction.findAll({ transaction });
+      const allStages = await Stage.findAll({ transaction });
 
+      for (const [index, resource] of resources.entries()) {
+        try {
           const {
             email,
             lineFunction,
@@ -75,9 +76,9 @@ class ResourceService extends BaseService {
           } = resource;
 
           // Validate line function
-          const lineFunctionExists = await LineFunction.findByPk(lineFunction, {
-            transaction: individualTransaction
-          });
+          const lineFunctionExists = allLineFunctions.some(
+            (lf) => lf.id === lineFunction
+          );
           if (!lineFunctionExists) {
             throw new CustomError(
               `Line Function with ID ${lineFunction} not found`,
@@ -86,13 +87,11 @@ class ResourceService extends BaseService {
           }
 
           // Validate stages
-          const validStages = await Stage.findAll({
-            where: { id: stages },
-            transaction: individualTransaction
-          });
-          const foundStageIds = validStages.map((stage) => stage.id);
+          const validStages = allStages.filter((stage) =>
+            stages.includes(stage.id)
+          );
           const invalidStages = stages.filter(
-            (stageId) => !foundStageIds.includes(stageId)
+            (stageId) => !validStages.map((stage) => stage.id).includes(stageId)
           );
           if (invalidStages.length > 0) {
             throw new CustomError(
@@ -104,7 +103,7 @@ class ResourceService extends BaseService {
           // Search for the resource by email
           let user = await User.findOne({
             where: { email: { [Sequelize.Op.iLike]: email } },
-            transaction: individualTransaction
+            transaction
           });
           if (!user) {
             throw new CustomError(
@@ -113,26 +112,18 @@ class ResourceService extends BaseService {
             );
           }
 
-          // Check if resource is already assigned to the same deal and stage
+          // Process each stage mapping
           for (const stageId of stages) {
             const existingMapping = await ResourceDealMapping.findOne({
-              where: {
-                userId: user.id,
-                dealId: dealId,
-                dealStageId: stageId
-              },
-              transaction: individualTransaction
-            });
-
-            const stage = await Stage.findByPk(stageId, {
-              transaction: individualTransaction
+              where: { userId: user.id, dealId: dealId, dealStageId: stageId },
+              transaction
             });
 
             if (existingMapping) {
               if (existingMapping.isDeleted) {
                 await existingMapping.update(
                   { isDeleted: false, createdBy: userId, modifiedBy: userId },
-                  { transaction: individualTransaction }
+                  { transaction }
                 );
               } else {
                 throw new CustomError(
@@ -150,15 +141,15 @@ class ResourceService extends BaseService {
                   createdBy: userId,
                   modifiedBy: userId
                 },
-                { transaction: individualTransaction }
+                { transaction }
               );
             }
           }
 
-          // Insert or update resource data in DealWiseResourceInfo table
+          // Insert or update resource in DealWiseResourceInfo table
           const existingResourceInfo = await DealWiseResourceInfo.findOne({
             where: { dealId, resourceId: user.id },
-            transaction: individualTransaction
+            transaction
           });
 
           if (existingResourceInfo) {
@@ -172,7 +163,7 @@ class ResourceService extends BaseService {
                 lineFunction,
                 modifiedBy: userId
               },
-              { transaction: individualTransaction }
+              { transaction }
             );
           } else {
             await DealWiseResourceInfo.create(
@@ -188,22 +179,29 @@ class ResourceService extends BaseService {
                 createdBy: userId,
                 modifiedBy: userId
               },
-              { transaction: individualTransaction }
+              { transaction }
             );
           }
-
-          // Commit transaction for this resource
-          await individualTransaction.commit();
         } catch (error) {
-          // Rollback individual resource transaction
-          if (individualTransaction) await individualTransaction.rollback();
+          // Handle partial rollback for the failed resource
+          await ResourceDealMapping.destroy({
+            where: { dealId, userId: user.id },
+            transaction
+          });
+          await DealWiseResourceInfo.destroy({
+            where: { dealId, resourceId: user.id },
+            transaction
+          });
 
-          // Log the failure resource with number
+          // Log failed resource with index and error message
           failedResources.push(`resource ${index + 1}: ${error.message}`);
         }
       }
 
-      // Return different responses based on whether there are failed resources
+      // Commit transaction after processing all resources
+      await transaction.commit();
+
+      // Return appropriate response
       if (failedResources.length > 0) {
         return {
           message: 'Some resources failed to be added',
