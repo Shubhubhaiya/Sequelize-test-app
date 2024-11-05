@@ -247,8 +247,6 @@ class ResourceService extends BaseService {
 
   async addResource(dealId, userId, resources) {
     const failedResources = [];
-    const newMappings = [];
-    const newResourceInfos = [];
     let transaction;
 
     try {
@@ -283,85 +281,123 @@ class ResourceService extends BaseService {
         }
       }
 
-      // Bulk fetch to avoid repetitive querying
-      const allLineFunctions = await LineFunction.findAll({ transaction });
-      const allStages = await Stage.findAll({ transaction });
+      // Fetch line functions and stages with names for mapping
+      const lineFunctionIds = new Set(
+        (await LineFunction.findAll({ transaction })).map((fn) => fn.id)
+      );
+      const stages = await Stage.findAll({ transaction });
+      const stageIds = new Set(stages.map((stage) => stage.id));
+
+      // Create a map for stage names based on stageId
+      const stageNameMap = new Map(
+        stages.map((stage) => [stage.id, stage.name])
+      );
+
+      // Gather all emails for single user lookup to avoid repetitive queries
+      const emails = resources.map((resource) => resource.email.toLowerCase());
+      const users = await User.findAll({
+        where: Sequelize.where(Sequelize.fn('lower', Sequelize.col('email')), {
+          [Sequelize.Op.in]: emails.map((email) => email.toLowerCase())
+        }),
+        transaction
+      });
+      const emailToUserMap = new Map(
+        users.map((user) => [user.email.toLowerCase(), user])
+      );
+
+      // Retrieve existing mappings and resource info entries for batch processing
+      const userIds = Array.from(emailToUserMap.values()).map(
+        (user) => user.id
+      );
+      const existingMappings = await ResourceDealMapping.findAll({
+        where: { userId: userIds, dealId },
+        transaction
+      });
+      const existingResourceInfos = await DealWiseResourceInfo.findAll({
+        where: { dealId, resourceId: userIds },
+        transaction
+      });
+
+      // Maps for quick lookup of existing mappings and resource info
+      const mappingMap = new Map(
+        existingMappings.map((mapping) => [
+          `${mapping.userId}-${mapping.dealStageId}`,
+          mapping
+        ])
+      );
+      const resourceInfoMap = new Map(
+        existingResourceInfos.map((info) => [info.resourceId, info])
+      );
+
+      const bulkNewMappings = [];
+      const bulkNewResourceInfos = [];
 
       for (const [index, resource] of resources.entries()) {
+        const {
+          email,
+          lineFunction,
+          stages,
+          vdrAccessRequested,
+          webTrainingStatus,
+          isCoreTeamMember,
+          oneToOneDiscussion,
+          optionalColumn
+        } = resource;
+        const temporaryMappings = [];
+        let successfulMapping = false;
         let user;
-        try {
-          const {
-            email,
-            lineFunction,
-            stages,
-            vdrAccessRequested,
-            webTrainingStatus,
-            isCoreTeamMember,
-            oneToOneDiscussion,
-            optionalColumn
-          } = resource;
 
+        try {
           // Validate line function
-          const lineFunctionExists = allLineFunctions.some(
-            (lf) => lf.id === lineFunction
-          );
-          if (!lineFunctionExists) {
-            throw new CustomError(
-              `Line Function with ID ${lineFunction} not found`,
-              statusCodes.BAD_REQUEST
+          if (!lineFunctionIds.has(lineFunction)) {
+            failedResources.push(
+              `resource ${index + 1}: Invalid Line Function`
             );
+            continue;
           }
 
           // Validate stages
-          const validStages = allStages.filter((stage) =>
-            stages.includes(stage.id)
-          );
           const invalidStages = stages.filter(
-            (stageId) => !validStages.map((stage) => stage.id).includes(stageId)
+            (stageId) => !stageIds.has(stageId)
           );
           if (invalidStages.length > 0) {
-            throw new CustomError(
-              `Invalid stage(s): ${invalidStages.join(', ')}`,
-              statusCodes.BAD_REQUEST
+            failedResources.push(
+              `resource ${index + 1}: Invalid stage(s): ${invalidStages.map((id) => stageNameMap.get(id)).join(', ')}`
             );
+            continue;
           }
 
-          // Search for the resource by email
-          user = await User.findOne({
-            where: { email: { [Sequelize.Op.iLike]: email } },
-            transaction
-          });
+          // Check if user exists
+          user = emailToUserMap.get(email.toLowerCase());
           if (!user) {
-            throw new CustomError(
-              `Resource with email ${email} not found!`,
-              statusCodes.BAD_REQUEST
+            failedResources.push(
+              `resource ${index + 1}: Resource with email ${email} not found`
             );
+            continue;
           }
 
-          // Process each stage mapping
+          // Process each stage and check for existing mappings
           for (const stageId of stages) {
-            const existingMapping = await ResourceDealMapping.findOne({
-              where: { userId: user.id, dealId: dealId, dealStageId: stageId },
-              transaction
-            });
+            const mappingKey = `${user.id}-${stageId}`;
+            const existingMapping = mappingMap.get(mappingKey);
 
             if (existingMapping) {
-              // If mapping exists and is not marked as deleted, log as failed
               if (!existingMapping.isDeleted) {
                 failedResources.push(
-                  `resource ${index + 1}: Resource ${email} is already part of stage ${stageId}`
+                  `resource ${index + 1}: ${email} is already part of '${stageNameMap.get(stageId)}' stage`
                 );
                 continue;
               } else {
-                // If the mapping exists but is deleted, reactivate it
+                // Reactivate deleted mapping
                 await existingMapping.update(
                   { isDeleted: false, createdBy: userId, modifiedBy: userId },
                   { transaction }
                 );
+                successfulMapping = true;
               }
             } else {
-              // Collect new mapping for bulk insert
-              newMappings.push({
+              // Add new mapping for bulk insert if no existing active mapping
+              temporaryMappings.push({
                 userId: user.id,
                 dealId,
                 dealStageId: stageId,
@@ -369,56 +405,56 @@ class ResourceService extends BaseService {
                 createdBy: userId,
                 modifiedBy: userId
               });
+              successfulMapping = true;
             }
           }
 
-          // Collect data for DealWiseResourceInfo insert or update
-          const existingResourceInfo = await DealWiseResourceInfo.findOne({
-            where: { dealId, resourceId: user.id },
-            transaction
-          });
-
-          if (existingResourceInfo) {
-            await existingResourceInfo.update(
-              {
+          // Only update or prepare DealWiseResourceInfo if at least one stage mapping was successful
+          if (successfulMapping) {
+            const existingResourceInfo = resourceInfoMap.get(user.id);
+            if (existingResourceInfo) {
+              // Update if existing info is found
+              await existingResourceInfo.update(
+                {
+                  vdrAccessRequested,
+                  webTrainingStatus,
+                  oneToOneDiscussion,
+                  optionalColumn,
+                  isCoreTeamMember,
+                  lineFunction,
+                  modifiedBy: userId
+                },
+                { transaction }
+              );
+            } else {
+              // Prepare new entry if no existing info found
+              bulkNewResourceInfos.push({
+                dealId,
+                resourceId: user.id,
+                lineFunction,
                 vdrAccessRequested,
                 webTrainingStatus,
                 oneToOneDiscussion,
                 optionalColumn,
                 isCoreTeamMember,
-                lineFunction,
+                createdBy: userId,
                 modifiedBy: userId
-              },
-              { transaction }
-            );
-          } else {
-            newResourceInfos.push({
-              dealId,
-              resourceId: user.id,
-              lineFunction,
-              vdrAccessRequested,
-              webTrainingStatus,
-              oneToOneDiscussion,
-              optionalColumn,
-              isCoreTeamMember,
-              createdBy: userId,
-              modifiedBy: userId
-            });
+              });
+            }
+            bulkNewMappings.push(...temporaryMappings);
           }
         } catch (error) {
-          // Log failed resource with specific index and error message
+          // Log failed resource with specific error
           failedResources.push(`resource ${index + 1}: ${error.message}`);
         }
       }
 
-      // Perform bulk insert for new mappings
-      if (newMappings.length > 0) {
-        await ResourceDealMapping.bulkCreate(newMappings, { transaction });
+      // Perform bulk insert for all collected new mappings and resource info entries
+      if (bulkNewMappings.length > 0) {
+        await ResourceDealMapping.bulkCreate(bulkNewMappings, { transaction });
       }
-
-      // Perform bulk insert for new DealWiseResourceInfo records
-      if (newResourceInfos.length > 0) {
-        await DealWiseResourceInfo.bulkCreate(newResourceInfos, {
+      if (bulkNewResourceInfos.length > 0) {
+        await DealWiseResourceInfo.bulkCreate(bulkNewResourceInfos, {
           transaction
         });
       }
@@ -433,11 +469,7 @@ class ResourceService extends BaseService {
           failedResources
         };
       } else {
-        return apiResponse.success(
-          null,
-          null,
-          'Resource(s) added successfully'
-        );
+        return apiResponse.success(null, null, 'Resources added successfully');
       }
     } catch (error) {
       if (transaction) await transaction.rollback();
