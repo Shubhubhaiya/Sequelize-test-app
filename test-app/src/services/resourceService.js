@@ -22,228 +22,6 @@ class ResourceService extends BaseService {
   constructor() {
     super(ResourceDealMapping);
   }
-  // async addResource(dealId, userId, resources) {
-  //   const failedResources = [];
-  //   let transaction;
-
-  //   try {
-  //     // Start a single transaction
-  //     transaction = await sequelize.transaction();
-
-  //     // Validate if the deal exists and is not deleted
-  //     const deal = await Deal.findOne({
-  //       where: { id: dealId, isDeleted: false },
-  //       transaction
-  //     });
-  //     if (!deal) {
-  //       throw new CustomError('Deal not found', statusCodes.NOT_FOUND);
-  //     }
-
-  //     // Fetch the user adding the resources and validate their role
-  //     const currentUser = await User.findByPk(userId, { transaction });
-  //     if (!currentUser) {
-  //       throw new CustomError('User not found', statusCodes.BAD_REQUEST);
-  //     }
-
-  //     if (currentUser.roleId === roles.DEAL_LEAD) {
-  //       const dealLeadMapping = await DealLeadMapping.findOne({
-  //         where: { userId: currentUser.id, dealId, isDeleted: false },
-  //         transaction
-  //       });
-  //       if (!dealLeadMapping) {
-  //         throw new CustomError(
-  //           'Deal Leads can only add resources to their own deals',
-  //           statusCodes.UNAUTHORIZED
-  //         );
-  //       }
-  //     }
-
-  //     // Bulk fetch to avoid repetitive querying
-  //     const allLineFunctions = await LineFunction.findAll({ transaction });
-  //     const allStages = await Stage.findAll({ transaction });
-
-  //     for (const [index, resource] of resources.entries()) {
-  //       const newlyCreatedMappings = []; // Track only new mappings created for rollback
-  //       let user;
-  //       try {
-  //         const {
-  //           email,
-  //           lineFunction,
-  //           stages,
-  //           vdrAccessRequested,
-  //           webTrainingStatus,
-  //           isCoreTeamMember,
-  //           oneToOneDiscussion,
-  //           optionalColumn
-  //         } = resource;
-
-  //         // Validate line function
-  //         const lineFunctionExists = allLineFunctions.some(
-  //           (lf) => lf.id === lineFunction
-  //         );
-  //         if (!lineFunctionExists) {
-  //           throw new CustomError(
-  //             `Line Function with ID ${lineFunction} not found`,
-  //             statusCodes.BAD_REQUEST
-  //           );
-  //         }
-
-  //         // Validate stages
-  //         const validStages = allStages.filter((stage) =>
-  //           stages.includes(stage.id)
-  //         );
-  //         const invalidStages = stages.filter(
-  //           (stageId) => !validStages.map((stage) => stage.id).includes(stageId)
-  //         );
-  //         if (invalidStages.length > 0) {
-  //           throw new CustomError(
-  //             `Invalid stage(s): ${invalidStages.join(', ')}`,
-  //             statusCodes.BAD_REQUEST
-  //           );
-  //         }
-
-  //         // Search for the resource by email
-  //         user = await User.findOne({
-  //           where: { email: { [Sequelize.Op.iLike]: email } },
-  //           transaction
-  //         });
-  //         if (!user) {
-  //           throw new CustomError(
-  //             `Resource with email ${email} not found!`,
-  //             statusCodes.BAD_REQUEST
-  //           );
-  //         }
-
-  //         // Process each stage mapping
-  //         for (const stageId of stages) {
-  //           const existingMapping = await ResourceDealMapping.findOne({
-  //             where: { userId: user.id, dealId: dealId, dealStageId: stageId },
-  //             transaction
-  //           });
-
-  //           if (existingMapping) {
-  //             // If mapping exists and is not marked as deleted, log as failed
-  //             if (!existingMapping.isDeleted) {
-  //               failedResources.push(
-  //                 `resource ${index + 1}: Resource ${email} is already part of stage ${stageId}`
-  //               );
-  //               continue;
-  //             } else {
-  //               // If the mapping exists but is deleted, reactivate it
-  //               await existingMapping.update(
-  //                 { isDeleted: false, createdBy: userId, modifiedBy: userId },
-  //                 { transaction }
-  //               );
-  //             }
-  //           } else {
-  //             // Create new mapping and add to newly created list for potential rollback
-  //             const newMapping = await ResourceDealMapping.create(
-  //               {
-  //                 userId: user.id,
-  //                 dealId,
-  //                 dealStageId: stageId,
-  //                 isDeleted: false,
-  //                 createdBy: userId,
-  //                 modifiedBy: userId
-  //               },
-  //               { transaction }
-  //             );
-  //             newlyCreatedMappings.push(newMapping);
-  //           }
-  //         }
-
-  //         // Insert or update resource in DealWiseResourceInfo table
-  //         const existingResourceInfo = await DealWiseResourceInfo.findOne({
-  //           where: { dealId, resourceId: user.id },
-  //           transaction
-  //         });
-
-  //         if (existingResourceInfo) {
-  //           await existingResourceInfo.update(
-  //             {
-  //               vdrAccessRequested,
-  //               webTrainingStatus,
-  //               oneToOneDiscussion,
-  //               optionalColumn,
-  //               isCoreTeamMember,
-  //               lineFunction,
-  //               modifiedBy: userId
-  //             },
-  //             { transaction }
-  //           );
-  //         } else {
-  //           await DealWiseResourceInfo.create(
-  //             {
-  //               dealId,
-  //               resourceId: user.id,
-  //               lineFunction,
-  //               vdrAccessRequested,
-  //               webTrainingStatus,
-  //               oneToOneDiscussion,
-  //               optionalColumn,
-  //               isCoreTeamMember,
-  //               createdBy: userId,
-  //               modifiedBy: userId
-  //             },
-  //             { transaction }
-  //           );
-  //         }
-  //       } catch (error) {
-  //         // Roll back only the mappings that were newly created in this operation
-  //         for (const mapping of newlyCreatedMappings) {
-  //           await ResourceDealMapping.destroy({
-  //             where: {
-  //               id: mapping.id
-  //             },
-  //             transaction
-  //           });
-  //         }
-
-  //         // Check if there are remaining mappings for this resource in the deal
-  //         if (user) {
-  //           const remainingMappings = await ResourceDealMapping.findAll({
-  //             where: {
-  //               userId: user.id,
-  //               dealId: dealId
-  //             },
-  //             transaction
-  //           });
-
-  //           // If no remaining mappings, delete the resource's DealWiseResourceInfo entry
-  //           if (remainingMappings.length === 0) {
-  //             await DealWiseResourceInfo.destroy({
-  //               where: { dealId, resourceId: user.id },
-  //               transaction
-  //             });
-  //           }
-  //         }
-
-  //         // Log failed resource with specific index and error message
-  //         failedResources.push(`resource ${index + 1}: ${error.message}`);
-  //       }
-  //     }
-
-  //     // Commit transaction after processing all resources
-  //     await transaction.commit();
-
-  //     // Return appropriate response
-  //     if (failedResources.length > 0) {
-  //       return {
-  //         message: 'Some resources failed to be added',
-  //         failedResources
-  //       };
-  //     } else {
-  //       return apiResponse.success(
-  //         null,
-  //         null,
-  //         'Resource(s) added successfully'
-  //       );
-  //     }
-  //   } catch (error) {
-  //     if (transaction) await transaction.rollback();
-  //     errorHandler.handle(error);
-  //   }
-  // }
 
   async addResource(dealId, userId, resources) {
     const failedResources = [];
@@ -357,7 +135,7 @@ class ResourceService extends BaseService {
           const user = emailToUserMap.get(email.toLowerCase());
           if (!user) {
             failedResources.push(
-              `resource ${index + 1}: Resource with email ${email} not found`
+              `Resource ${index + 1}: Resource with email ${email} not found`
             );
             continue;
           }
@@ -365,7 +143,7 @@ class ResourceService extends BaseService {
           // Validate line function
           if (!lineFunctionIds.has(lineFunction)) {
             failedResources.push(
-              `resource ${index + 1}: Invalid Line Function`
+              `Resource ${index + 1}: Invalid Line Function`
             );
             continue;
           }
@@ -377,7 +155,10 @@ class ResourceService extends BaseService {
 
             // Check if this mapping is already processed in this request
             if (newMappingKeys.has(mappingKey)) {
-              // Skip adding duplicate mapping
+              // Duplicate mapping detected within the request
+              failedResources.push(
+                `Resource ${index + 1}: Duplicate entry for ${email} in '${stageNameMap.get(stageId)}' stage within the request`
+              );
               continue;
             }
 
@@ -386,7 +167,7 @@ class ResourceService extends BaseService {
             if (existingMapping && !existingMapping.isDeleted) {
               // Resource already part of stage
               failedResources.push(
-                `resource ${index + 1}: ${email} is already part of '${stageNameMap.get(stageId)}' stage`
+                `Resource ${index + 1}: ${email} is already part of '${stageNameMap.get(stageId)}' stage`
               );
               continue;
             } else if (existingMapping) {
@@ -427,7 +208,7 @@ class ResourceService extends BaseService {
             });
           }
         } catch (error) {
-          failedResources.push(`resource ${index + 1}: ${error.message}`);
+          failedResources.push(`Resource ${index + 1}: ${error.message}`);
         }
       }
 
