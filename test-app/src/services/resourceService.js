@@ -476,8 +476,8 @@ class ResourceService extends BaseService {
       });
 
       // Assemble the final data
-      const resources = rows
-        .map((row) => {
+      const resourcesData = rows
+        .map((row, index) => {
           const resourceInfo = resourceInfoMap.get(
             `${row.dealId}-${row.userId}`
           );
@@ -490,27 +490,19 @@ class ResourceService extends BaseService {
           }
 
           return {
-            // Use composite key or another unique identifier
-            id: user.id,
-            recordKey: `${row.userId}-${row.dealId}-${row.dealStageId}`,
-            lineFunction: resourceInfo.associatedLineFunction || null,
-            name: `${user.firstName} ${user.lastName}`,
-            stage: stage || null,
-            title: user.title,
-            email: user.email,
-            vdrAccessRequested: resourceInfo.vdrAccessRequested,
-            webTrainingStatus: resourceInfo.webTrainingStatus,
-            novartis521ID: user.novartis521ID,
-            isCoreTeamMember: resourceInfo.isCoreTeamMember,
-            oneToOneDiscussion: resourceInfo.oneToOneDiscussion,
-            optionalColumn: resourceInfo.optionalColumn,
-            siteCode: user.siteCode
+            recordId: index + 1, // Assign recordId here
+            userId: user.id,
+            dealId: row.dealId,
+            dealStageId: row.dealStageId,
+            resourceInfo,
+            resource: user,
+            stage
           };
         })
         .filter((resource) => resource !== null);
 
       // Update count after filters
-      const totalRecords = resources.length;
+      const totalRecords = resourcesData.length;
       const totalPages = Math.ceil(totalRecords / limit);
       const pagination = {
         totalRecords,
@@ -520,15 +512,20 @@ class ResourceService extends BaseService {
       };
 
       // Paginate the final results
-      const offset = (page - 1) * limit;
-      const paginatedResources = resources.slice(offset, offset + limit);
+      const offsetValue = (page - 1) * limit;
+      const paginatedResourcesData = resourcesData.slice(
+        offsetValue,
+        offsetValue + limit
+      );
+
+      // Map the paginated resources using ResourceListResponseMapper
+      const paginatedResources = ResourceListResponseMapper.mapResourceList(
+        paginatedResourcesData,
+        offsetValue
+      );
 
       // Return data with pagination
-      if (paginatedResources.length > 0) {
-        return { data: paginatedResources, ...pagination };
-      } else {
-        return { data: [], ...pagination };
-      }
+      return { data: paginatedResources, ...pagination };
     } catch (error) {
       console.error(error);
       errorHandler.handle(error);

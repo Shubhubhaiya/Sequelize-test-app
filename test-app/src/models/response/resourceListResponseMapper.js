@@ -1,32 +1,34 @@
 class ResourceListResponseMapper {
   constructor(resourceDeal, index) {
-    this.id = resourceDeal.userId;
-    this.recordId = index + 1; // needed for pagination on UI
-    this.lineFunction = resourceDeal.resourceInfo?.associatedLineFunction
+    const { userId, dealId, dealStageId, resourceInfo, resource, stage } =
+      resourceDeal;
+
+    this.id = userId;
+    this.recordId = index + 1; // Adjusted with pagination offset
+    this.lineFunction = resourceInfo?.associatedLineFunction
       ? {
-          id: resourceDeal.resourceInfo.associatedLineFunction.id,
-          name: resourceDeal.resourceInfo.associatedLineFunction.name
+          id: resourceInfo.associatedLineFunction.id,
+          name: resourceInfo.associatedLineFunction.name
         }
       : null;
-    this.name = `${resourceDeal.resource?.firstName || ''} ${resourceDeal.resource?.lastName || ''}`;
-    this.stage = resourceDeal.stage
-      ? { id: resourceDeal.stage.id, name: resourceDeal.stage.name }
-      : null;
-    this.title = resourceDeal.resource?.title;
-    this.email = resourceDeal.resource?.email;
-    this.vdrAccessRequested = resourceDeal.resourceInfo?.vdrAccessRequested;
-    this.webTrainingStatus = resourceDeal.resourceInfo?.webTrainingStatus;
-    this.novartis521ID = resourceDeal.resource?.novartis521ID;
-    this.isCoreTeamMember = resourceDeal.resourceInfo?.isCoreTeamMember;
-    this.oneToOneDiscussion = resourceDeal.resourceInfo?.oneToOneDiscussion;
-    this.optionalColumn = resourceDeal.resourceInfo?.optionalColumn;
-    this.siteCode = resourceDeal.resource?.siteCode;
+    this.name =
+      `${resource?.firstName || ''} ${resource?.lastName || ''}`.trim();
+    this.stage = stage ? { id: stage.id, name: stage.name } : null;
+    this.title = resource?.title || '';
+    this.email = resource?.email || '';
+    this.vdrAccessRequested = resourceInfo?.vdrAccessRequested || false;
+    this.webTrainingStatus = resourceInfo?.webTrainingStatus || '';
+    this.novartis521ID = resource?.novartis521ID || '';
+    this.isCoreTeamMember = resourceInfo?.isCoreTeamMember || false;
+    this.oneToOneDiscussion = resourceInfo?.oneToOneDiscussion || '';
+    this.optionalColumn = resourceInfo?.optionalColumn || '';
+    this.siteCode = resource?.siteCode || '';
   }
 
-  static mapResourceList(data) {
+  static mapResourceList(data, offset = 0) {
     return data.map(
       (resourceDeal, index) =>
-        new ResourceListResponseMapper(resourceDeal, index)
+        new ResourceListResponseMapper(resourceDeal, offset + index)
     );
   }
 }
