@@ -301,6 +301,7 @@ class ResourceService extends BaseService {
         }),
         transaction
       });
+
       const emailToUserMap = new Map(
         users.map((user) => [user.email.toLowerCase(), user])
       );
@@ -351,7 +352,7 @@ class ResourceService extends BaseService {
           // Validate line function
           if (!lineFunctionIds.has(lineFunction)) {
             failedResources.push(
-              `resource ${index + 1}: Invalid Line Function`
+              `resource ${index + 1}: Invalid Line Function ID ${lineFunction}`
             );
             continue;
           }
@@ -384,7 +385,7 @@ class ResourceService extends BaseService {
             if (existingMapping) {
               if (!existingMapping.isDeleted) {
                 failedResources.push(
-                  `resource ${index + 1}: ${email} is already part of '${stageNameMap.get(stageId)}' stage`
+                  `resource ${index + 1}: ${email} is already part of  '${stageNameMap.get(stageId)}' stage`
                 );
                 continue;
               } else {
@@ -428,18 +429,26 @@ class ResourceService extends BaseService {
               );
             } else {
               // Prepare new entry if no existing info found
-              bulkNewResourceInfos.push({
-                dealId,
-                resourceId: user.id,
-                lineFunction,
-                vdrAccessRequested,
-                webTrainingStatus,
-                oneToOneDiscussion,
-                optionalColumn,
-                isCoreTeamMember,
-                createdBy: userId,
-                modifiedBy: userId
-              });
+              // Ensure `bulkNewResourceInfos` only contains unique `userId` and `dealId` combinations
+              if (
+                !bulkNewResourceInfos.some(
+                  (info) =>
+                    info.resourceId === user.id && info.dealId === dealId
+                )
+              ) {
+                bulkNewResourceInfos.push({
+                  dealId,
+                  resourceId: user.id,
+                  lineFunction,
+                  vdrAccessRequested,
+                  webTrainingStatus,
+                  oneToOneDiscussion,
+                  optionalColumn,
+                  isCoreTeamMember,
+                  createdBy: userId,
+                  modifiedBy: userId
+                });
+              }
             }
             bulkNewMappings.push(...temporaryMappings);
           }
