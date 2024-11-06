@@ -28,9 +28,14 @@ module.exports = (sequelize, DataTypes) => {
 
   DealLeadMapping.init(
     {
-      userId: {
+      id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
+        autoIncrement: true
+      },
+      userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
         references: {
           model: 'Users',
           key: 'id'
@@ -38,7 +43,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       dealId: {
         type: DataTypes.INTEGER,
-        primaryKey: true,
+        allowNull: false,
         references: {
           model: 'Deals',
           key: 'id'

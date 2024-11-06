@@ -156,17 +156,16 @@ class DealService extends baseService {
     try {
       transaction = await sequelize.transaction();
 
-      // fetching the request body data
+      // Destructure request body data
       const { name, stage, therapeuticArea, userId, dealLead } = data;
-      let newDealLead = dealLead;
 
-      // check if deal exists
+      // Check if the deal exists
       const deal = await Deal.findByPk(dealId);
       if (!deal) {
         throw new CustomError('Deal not found.', statusCodes.NOT_FOUND);
       }
 
-      // Check if any other deal with the same name exists
+      // Check if another deal with the same name exists
       const isDealWithSameNameExists = await Deal.findOne({
         where: {
           name: { [Sequelize.Op.iLike]: name },
@@ -182,13 +181,13 @@ class DealService extends baseService {
         );
       }
 
-      // check if user(system admin) exists
+      // Check if the user (system admin) exists
       const user = await User.findByPk(userId);
       if (!user) {
         throw new CustomError('User not found.', statusCodes.BAD_REQUEST);
       }
 
-      // only system admin can update the deal
+      // Only system admin can update the deal
       if (user.roleId !== roles.SYSTEM_ADMIN) {
         throw new CustomError(
           'Only system admin can update the deal',
@@ -197,7 +196,7 @@ class DealService extends baseService {
       }
 
       // Validate deal lead existence and role
-      const dealLeadResponse = await User.findByPk(newDealLead);
+      const dealLeadResponse = await User.findByPk(dealLead);
       if (!dealLeadResponse) {
         throw new CustomError('Deal lead not found.', statusCodes.BAD_REQUEST);
       }
@@ -209,7 +208,7 @@ class DealService extends baseService {
         );
       }
 
-      // check if stage and therapeutic area exist
+      // Check if the stage and therapeutic area exist
       const [isStageExists, isTherapeuticAreaExist] = await Promise.all([
         Stage.findByPk(stage),
         TherapeuticArea.findByPk(therapeuticArea)
@@ -226,19 +225,19 @@ class DealService extends baseService {
         );
       }
 
-      // Log the stage change if stage is different
+      // Log the stage change if it's different from the current stage
       if (deal.currentStage !== stage) {
         await DealStageLog.create(
           {
             dealId: deal.id,
-            stageId: stage, // Log the new stage ID
+            stageId: stage,
             startDate: new Date() // Start date of the new stage
           },
           { transaction }
         );
       }
 
-      // update the deal
+      // Update the deal with the new details
       await deal.update(
         {
           name,
@@ -249,45 +248,40 @@ class DealService extends baseService {
         { transaction }
       );
 
-      // check who is the active deal lead of the deal
-      const activeDealLeadMapping = await DealLeadMapping.findOne({
-        where: { dealId, isDeleted: false }
+      // Find the current active deal lead mapping for this deal
+      const currentActiveDealLeadMapping = await DealLeadMapping.findOne({
+        where: { dealId, isDeleted: false },
+        transaction
       });
 
-      // remove old deal lead from deal
-      if (
-        activeDealLeadMapping &&
-        activeDealLeadMapping.userId !== newDealLead
-      ) {
-        await activeDealLeadMapping.update(
-          { isDeleted: true, modifiedBy: userId },
-          { transaction }
-        );
+      // Check if we need to update the deal lead
+      const isNewDealLeadRequired =
+        !currentActiveDealLeadMapping ||
+        currentActiveDealLeadMapping.userId !== dealLead;
 
-        const inactiveDealLeadMapping = await DealLeadMapping.findOne({
-          where: { dealId, userId: newDealLead, isDeleted: true }
-        });
-
-        if (inactiveDealLeadMapping) {
-          await inactiveDealLeadMapping.update(
-            { isDeleted: false, modifiedBy: userId },
-            { transaction }
-          );
-        } else {
-          await DealLeadMapping.create(
-            {
-              userId: newDealLead,
-              dealId,
-              createdBy: userId,
-              modifiedBy: userId
-            },
+      if (isNewDealLeadRequired) {
+        // If there's an existing active deal lead, deactivate it by marking as deleted
+        if (currentActiveDealLeadMapping) {
+          await currentActiveDealLeadMapping.update(
+            { isDeleted: true, modifiedBy: userId },
             { transaction }
           );
         }
+
+        // Add a new record for the updated deal lead
+        await DealLeadMapping.create(
+          {
+            userId: dealLead,
+            dealId,
+            createdBy: userId,
+            modifiedBy: userId
+          },
+          { transaction }
+        );
       }
 
       await transaction.commit();
-      return apiResponse.success(null, null, 'Deal updated successfully ');
+      return apiResponse.success(null, null, 'Deal updated successfully');
     } catch (error) {
       if (transaction) await transaction.rollback();
       errorHandler.handle(error);
