@@ -2,24 +2,38 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // Step 1: Add the 'id' column with auto-increment and set it as the new primary key
+    // Add the 'id' column with auto-increment and set it as the new primary key
     await queryInterface.addColumn('DealLeadMapping', 'id', {
       type: Sequelize.INTEGER,
       autoIncrement: true,
-      allowNull: false,
-      primaryKey: true
+      allowNull: false
     });
 
-    // Step 4 (optional): Add a non-unique index on 'userId' and 'dealId' for performance
+    // Step 3: Set 'id' as the primary key
+    await queryInterface.sequelize.query(`
+      ALTER TABLE "DealLeadMapping" 
+      ADD PRIMARY KEY ("id");
+    `);
+
+    // Add a non-unique index on 'userId' and 'dealId' for performance
     await queryInterface.addIndex('DealLeadMapping', ['userId', 'dealId'], {
-      name: 'idx_userId_dealId'
+      name: 'idx_dealLeadMapping_userId_dealId'
     });
   },
 
   down: async (queryInterface, Sequelize) => {
-    // Step 2: Remove the 'id' column
+    // Remove the 'id' column
     await queryInterface.removeColumn('DealLeadMapping', 'id');
-    // Step 1: Remove the non-unique index on 'userId' and 'dealId'
-    await queryInterface.removeIndex('DealLeadMapping', 'idx_userId_dealId');
+
+    // Revert: Drop 'id' as primary key
+    await queryInterface.sequelize.query(`
+      ALTER TABLE "DealLeadMapping"
+      DROP CONSTRAINT "ResourceDealMapping_pkey";
+    `);
+    // Remove the non-unique index on 'userId' and 'dealId'
+    await queryInterface.removeIndex(
+      'DealLeadMapping',
+      'idx_dealLeadMapping_userId_dealId'
+    );
   }
 };

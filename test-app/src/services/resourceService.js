@@ -170,15 +170,8 @@ class ResourceService extends BaseService {
                 `Resource ${index + 1}: ${email} is already part of '${stageNameMap.get(stageId)}' stage`
               );
               continue;
-            } else if (existingMapping) {
-              // Reactivate deleted mapping
-              await existingMapping.update(
-                { isDeleted: false, createdBy: userId, modifiedBy: userId },
-                { transaction }
-              );
-              resourceMappingSuccess = true;
             } else {
-              // Add new mapping
+              // Add new mapping (no reactivation)
               bulkNewMappings.push({
                 userId: user.id,
                 dealId,
