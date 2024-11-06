@@ -341,11 +341,8 @@ class DealService extends baseService {
         { where: { dealId }, transaction }
       );
 
-      // Soft delete associated DealWiseResourceInfo records
-      await DealWiseResourceInfo.update(
-        { isDeleted: true },
-        { where: { dealId }, transaction }
-      );
+      // Hard delete associated DealWiseResourceInfo records
+      await DealWiseResourceInfo.destroy({ where: { dealId }, transaction });
 
       // Soft delete associated Resource deal mapping records
       await ResourceDealMapping.update(
