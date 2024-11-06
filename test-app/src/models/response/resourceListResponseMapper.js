@@ -1,34 +1,44 @@
 class ResourceListResponseMapper {
-  constructor(resourceDeal, index) {
-    const { userId, dealId, dealStageId, resourceInfo, resource, stage } =
-      resourceDeal;
+  constructor(resourceDeal) {
+    const { recordId, userId, resourceInfo, resource, stage } = resourceDeal;
 
     this.id = userId;
-    this.recordId = index + 1; // Adjusted with pagination offset
-    this.lineFunction = resourceInfo?.associatedLineFunction
+    this.recordId = recordId;
+    this.lineFunction = resourceInfo.associatedLineFunction
       ? {
           id: resourceInfo.associatedLineFunction.id,
           name: resourceInfo.associatedLineFunction.name
         }
       : null;
-    this.name =
-      `${resource?.firstName || ''} ${resource?.lastName || ''}`.trim();
-    this.stage = stage ? { id: stage.id, name: stage.name } : null;
-    this.title = resource?.title || '';
-    this.email = resource?.email || '';
-    this.vdrAccessRequested = resourceInfo?.vdrAccessRequested || false;
-    this.webTrainingStatus = resourceInfo?.webTrainingStatus || '';
-    this.novartis521ID = resource?.novartis521ID || '';
-    this.isCoreTeamMember = resourceInfo?.isCoreTeamMember || false;
-    this.oneToOneDiscussion = resourceInfo?.oneToOneDiscussion || '';
-    this.optionalColumn = resourceInfo?.optionalColumn || '';
-    this.siteCode = resource?.siteCode || '';
+
+    // Name fields are expected to have values
+    this.name = `${resource.firstName} ${resource.lastName}`.trim();
+
+    // Stage is expected to be present
+    this.stage = {
+      id: stage.id,
+      name: stage.name
+    };
+
+    // These fields always have values, so no need for null coalescing
+    this.title = resource.title;
+    this.email = resource.email;
+    this.novartis521ID = resource.novartis521ID;
+    this.siteCode = resource.siteCode;
+
+    // Boolean fields expected to have values
+    this.vdrAccessRequested = resourceInfo.vdrAccessRequested;
+    this.webTrainingStatus = resourceInfo.webTrainingStatus;
+    this.isCoreTeamMember = resourceInfo.isCoreTeamMember;
+
+    // Fields that can be null
+    this.oneToOneDiscussion = resourceInfo.oneToOneDiscussion || '';
+    this.optionalColumn = resourceInfo.optionalColumn || '';
   }
 
-  static mapResourceList(data, offset = 0) {
+  static mapResourceList(data) {
     return data.map(
-      (resourceDeal, index) =>
-        new ResourceListResponseMapper(resourceDeal, offset + index)
+      (resourceDeal) => new ResourceListResponseMapper(resourceDeal)
     );
   }
 }

@@ -326,17 +326,17 @@ class ResourceService extends BaseService {
         };
       }
 
-      // Filter by optionalColumn
+      // Filter by optionalColumn (contains search)
       if (filters.optionalColumn) {
         resourceInfoWhere.optionalColumn = {
-          [Sequelize.Op.iLike]: `${filters.optionalColumn}%`
+          [Sequelize.Op.iLike]: `%${filters.optionalColumn}%`
         };
       }
 
-      // Filter by oneToOneDiscussion
+      // Filter by oneToOneDiscussion (contains search)
       if (filters.oneToOneDiscussion) {
         resourceInfoWhere.oneToOneDiscussion = {
-          [Sequelize.Op.iLike]: `${filters.oneToOneDiscussion}%`
+          [Sequelize.Op.iLike]: `%${filters.oneToOneDiscussion}%`
         };
       }
 
@@ -344,14 +344,14 @@ class ResourceService extends BaseService {
       // Filters on User
       // =====================
 
-      // Filter by name
+      // Filter by name (contains search)
       if (filters.name) {
         resourceWhere[Sequelize.Op.or] = [
           {
-            firstName: { [Sequelize.Op.iLike]: `${filters.name}%` }
+            firstName: { [Sequelize.Op.iLike]: `%${filters.name}%` }
           },
           {
-            lastName: { [Sequelize.Op.iLike]: `${filters.name}%` }
+            lastName: { [Sequelize.Op.iLike]: `%${filters.name}%` }
           },
           Sequelize.where(
             Sequelize.fn(
@@ -361,37 +361,37 @@ class ResourceService extends BaseService {
               Sequelize.col('lastName')
             ),
             {
-              [Sequelize.Op.iLike]: `${filters.name}%`
+              [Sequelize.Op.iLike]: `%${filters.name}%`
             }
           )
         ];
       }
 
-      // Filter by email
+      // Filter by email (contains search)
       if (filters.email) {
         resourceWhere.email = {
-          [Sequelize.Op.iLike]: `${filters.email}%`
+          [Sequelize.Op.iLike]: `%${filters.email}%`
         };
       }
 
-      // Filter by title
+      // Filter by title (contains search)
       if (filters.title) {
         resourceWhere.title = {
-          [Sequelize.Op.iLike]: `${filters.title}%`
+          [Sequelize.Op.iLike]: `%${filters.title}%`
         };
       }
 
-      // Filter by novartis521ID
+      // Filter by novartis521ID (contains search)
       if (filters.novartis521ID) {
         resourceWhere.novartis521ID = {
-          [Sequelize.Op.iLike]: `${filters.novartis521ID}%`
+          [Sequelize.Op.iLike]: `%${filters.novartis521ID}%`
         };
       }
 
-      // Filter by siteCode
+      // Filter by siteCode (contains search)
       if (filters.siteCode) {
         resourceWhere.siteCode = {
-          [Sequelize.Op.iLike]: `${filters.siteCode}%`
+          [Sequelize.Op.iLike]: `%${filters.siteCode}%`
         };
       }
 
@@ -476,8 +476,9 @@ class ResourceService extends BaseService {
       });
 
       // Assemble the final data
+      let recordCounter = 1;
       const resourcesData = rows
-        .map((row, index) => {
+        .map((row) => {
           const resourceInfo = resourceInfoMap.get(
             `${row.dealId}-${row.userId}`
           );
@@ -490,7 +491,7 @@ class ResourceService extends BaseService {
           }
 
           return {
-            recordId: index + 1, // Assign recordId here
+            recordId: recordCounter++, // Assign recordId sequentially
             userId: user.id,
             dealId: row.dealId,
             dealStageId: row.dealStageId,
@@ -520,8 +521,7 @@ class ResourceService extends BaseService {
 
       // Map the paginated resources using ResourceListResponseMapper
       const paginatedResources = ResourceListResponseMapper.mapResourceList(
-        paginatedResourcesData,
-        offsetValue
+        paginatedResourcesData
       );
 
       // Return data with pagination
