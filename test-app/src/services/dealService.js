@@ -222,12 +222,30 @@ class DealService extends baseService {
           statusCodes.BAD_REQUEST
         );
 
+      // Validate deal lead’s association with the therapeutic area
+      const isDealLeadAssociatedWithTherapeuticArea = await User.findByPk(
+        dealLead,
+        {
+          include: {
+            model: TherapeuticArea,
+            as: 'therapeuticAreas',
+            where: { id: therapeuticArea }
+          }
+        }
+      );
+
+      if (!isDealLeadAssociatedWithTherapeuticArea) {
+        throw new CustomError(
+          'Deal Lead is not associated with this Therapeutic Area.',
+          statusCodes.BAD_REQUEST
+        );
+      }
+
       // Initialize audit entries array
       const auditEntries = [];
-
-      // Collect change information for audit trail
       const userName = `${user.lastName}, ${user.firstName} `;
 
+      // Collect change information for audit trail
       if (deal.name !== name) {
         auditEntries.push({
           dealId,
