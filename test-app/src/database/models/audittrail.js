@@ -8,6 +8,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'performedBy',
         as: 'user'
       });
+      AuditTrail.belongsTo(models.Deal, {
+        foreignKey: 'dealId',
+        as: 'deal'
+      });
     }
   }
 
@@ -19,26 +23,67 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         allowNull: false
       },
-      action: {
+      //The type of entity, e.g., 'Deal' or 'Resource'.
+      entityType: {
         type: DataTypes.STRING,
         allowNull: false
       },
-      description: {
-        type: DataTypes.TEXT,
+      //'ID of the entity, such as Deal or Resource ID'
+      entityId: {
+        type: DataTypes.INTEGER,
         allowNull: false
       },
+      //reference to the related deal ID.
       dealId: {
         type: DataTypes.INTEGER,
-        allowNull: true,
+        allowNull: false,
         references: {
           model: 'Deals',
           key: 'id'
         }
       },
+      // Action performed, e.g., 'Created', 'Updated', 'Deleted'
+
+      action: {
+        type: DataTypes.STRING,
+        allowNull: false
+      },
+
+      //The specific field that was changed, if applicable
+
+      fieldChanged: {
+        type: DataTypes.STRING,
+        allowNull: true
+      },
+
+      //Previous value of the field before the update
+
+      oldValue: {
+        type: DataTypes.TEXT,
+        allowNull: true
+      },
+
+      //New value of the field after the update
+
+      newValue: {
+        type: DataTypes.TEXT,
+        allowNull: true
+      },
+      //  Detailed description of the action performed
+
+      description: {
+        type: DataTypes.TEXT,
+        allowNull: false
+      },
+      // Timestamp of when the action was performed
+
       actionDate: {
         type: DataTypes.DATE,
-        defaultValue: DataTypes.NOW
+        defaultValue: DataTypes.NOW,
+        allowNull: false
       },
+      // ID of the user who performed the action'
+
       performedBy: {
         type: DataTypes.INTEGER,
         allowNull: false,

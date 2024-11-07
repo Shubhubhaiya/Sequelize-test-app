@@ -9,9 +9,29 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.INTEGER
       },
+      entityType: {
+        type: Sequelize.STRING,
+        allowNull: false
+      },
+      entityId: {
+        type: Sequelize.INTEGER,
+        allowNull: false
+      },
       action: {
         type: Sequelize.STRING,
         allowNull: false
+      },
+      fieldChanged: {
+        type: Sequelize.STRING,
+        allowNull: true
+      },
+      oldValue: {
+        type: Sequelize.TEXT,
+        allowNull: true
+      },
+      newValue: {
+        type: Sequelize.TEXT,
+        allowNull: true
       },
       description: {
         type: Sequelize.TEXT,
@@ -19,7 +39,7 @@ module.exports = {
       },
       dealId: {
         type: Sequelize.INTEGER,
-        allowNull: true,
+        allowNull: false,
         references: {
           model: 'Deals',
           key: 'id'

@@ -17,6 +17,8 @@ const errorHandler = require('../utils/errorHandler');
 const CustomError = require('../utils/customError');
 const statusCodes = require('../config/statusCodes');
 const DealDetailResponseMapper = require('../models/response/dealDetailResponseMapper');
+const { createAuditTrailEntry } = require('../utils/auditTrailEntry');
+const { action, entity } = require('../config/auditTrail');
 
 class DealService extends baseService {
   constructor() {
@@ -36,40 +38,10 @@ class DealService extends baseService {
         throw new CustomError('User not found.', statusCodes.BAD_REQUEST);
       }
 
-      // Check if the user is a System Admin
       if (userResponse.roleId !== roles.SYSTEM_ADMIN) {
         throw new CustomError(
           'Only System Admins are authorized to create deals.',
           statusCodes.UNAUTHORIZED
-        );
-      }
-
-      // Validate deallead existance and role
-      const dealLeadResponse = await User.findByPk(dealLead);
-      if (!dealLeadResponse) {
-        throw new CustomError('Deal lead not found.', statusCodes.BAD_REQUEST);
-      }
-
-      if (dealLeadResponse.roleId !== roles.DEAL_LEAD) {
-        throw new CustomError(
-          'Deal can only assigned to deal lead.',
-          statusCodes.BAD_REQUEST
-        );
-      }
-
-      // Validate the deal lead (if provided) belongs to the therapeutic area
-      const dealLeadUser = await User.findByPk(dealLead, {
-        include: {
-          model: TherapeuticArea,
-          as: 'therapeuticAreas',
-          where: { id: therapeuticArea }
-        }
-      });
-
-      if (!dealLeadUser) {
-        throw new CustomError(
-          'Deal Lead is not associated with this Therapeutic Area.',
-          statusCodes.BAD_REQUEST
         );
       }
 
@@ -87,21 +59,50 @@ class DealService extends baseService {
         );
       }
 
-      // Validate stage existence
-      const stageResponse = await Stage.findByPk(stage);
+      // Validate stage and therapeutic area existence and retrieve names
+      const [stageResponse, therapeuticAreaResponse] = await Promise.all([
+        Stage.findByPk(stage),
+        TherapeuticArea.findByPk(therapeuticArea)
+      ]);
+
       if (!stageResponse) {
         throw new CustomError('Stage does not exist.', statusCodes.BAD_REQUEST);
       }
-
-      // Validate therapeuticArea existence
-      const therapeuticAreaResponse =
-        await TherapeuticArea.findByPk(therapeuticArea);
       if (!therapeuticAreaResponse) {
         throw new CustomError(
           'Therapeutic area does not exist.',
           statusCodes.BAD_REQUEST
         );
       }
+
+      // Validate deal lead existence and role
+      const dealLeadResponse = await User.findByPk(dealLead);
+      if (!dealLeadResponse) {
+        throw new CustomError('Deal lead not found.', statusCodes.BAD_REQUEST);
+      }
+      if (dealLeadResponse.roleId !== roles.DEAL_LEAD) {
+        throw new CustomError(
+          'Deal can only be assigned to deal lead.',
+          statusCodes.BAD_REQUEST
+        );
+      }
+
+      // Validate deal lead's association with therapeutic area
+      const dealLeadUser = await User.findByPk(dealLead, {
+        include: {
+          model: TherapeuticArea,
+          as: 'therapeuticAreas',
+          where: { id: therapeuticArea }
+        }
+      });
+      if (!dealLeadUser) {
+        throw new CustomError(
+          'Deal Lead is not associated with this Therapeutic Area.',
+          statusCodes.BAD_REQUEST
+        );
+      }
+
+      const userName = `${userResponse.lastName}, ${userResponse.firstName}`;
 
       // Create the deal
       const newDeal = await Deal.create(
@@ -119,14 +120,13 @@ class DealService extends baseService {
       await DealStageLog.create(
         {
           dealId: newDeal.id,
-          stageId: stage, // Log the new stage ID
-          startDate: new Date() // Start date of the stage
+          stageId: stage,
+          startDate: new Date()
         },
         { transaction }
       );
 
-      // If dealLead is valid, create the mapping
-
+      // Create DealLeadMapping entry if the deal lead is valid
       await DealLeadMapping.create(
         {
           userId: dealLead,
@@ -140,13 +140,23 @@ class DealService extends baseService {
       // Commit the transaction
       await transaction.commit();
 
+      // Prepare audit trail data
+      const auditData = {
+        dealId: newDeal.id,
+        action: action.CREATED,
+        entityId: newDeal.id,
+        entityType: entity.DEAL,
+        description: `${userName} created this New deal with name'${name}'`,
+        performedBy: userId,
+        actionDate: new Date()
+      };
+
+      // Enqueue the audit trail entry
+      createAuditTrailEntry(auditData);
+
       return apiResponse.success(null, null, 'Deal created successfully');
     } catch (error) {
-      // Rollback the transaction if it exists
-      if (transaction) {
-        await transaction.rollback();
-      }
-
+      if (transaction) await transaction.rollback();
       errorHandler.handle(error);
     }
   }
@@ -156,89 +166,127 @@ class DealService extends baseService {
     try {
       transaction = await sequelize.transaction();
 
-      // fetching the request body data
       const { name, stage, therapeuticArea, userId, dealLead } = data;
-      let newDealLead = dealLead;
 
-      // check if deal exists
-      const deal = await Deal.findByPk(dealId);
-      if (!deal) {
-        throw new CustomError('Deal not found.', statusCodes.NOT_FOUND);
-      }
-
-      // Check if any other deal with the same name exists
-      const isDealWithSameNameExists = await Deal.findOne({
-        where: {
-          name: { [Sequelize.Op.iLike]: name },
-          id: { [Sequelize.Op.ne]: dealId }, // Exclude the current deal
-          isDeleted: false
-        }
-      });
-
-      if (isDealWithSameNameExists) {
-        throw new CustomError(
-          'This deal name is already in use.',
-          statusCodes.CONFLICT
-        );
-      }
-
-      // check if user(system admin) exists
-      const user = await User.findByPk(userId);
-      if (!user) {
-        throw new CustomError('User not found.', statusCodes.BAD_REQUEST);
-      }
-
-      // only system admin can update the deal
-      if (user.roleId !== roles.SYSTEM_ADMIN) {
-        throw new CustomError(
-          'Only system admin can update the deal',
-          statusCodes.UNAUTHORIZED
-        );
-      }
-
-      // Validate deal lead existence and role
-      const dealLeadResponse = await User.findByPk(newDealLead);
-      if (!dealLeadResponse) {
-        throw new CustomError('Deal lead not found.', statusCodes.BAD_REQUEST);
-      }
-
-      if (dealLeadResponse.roleId !== roles.DEAL_LEAD) {
-        throw new CustomError(
-          'Deal can only be assigned to a deal lead.',
-          statusCodes.BAD_REQUEST
-        );
-      }
-
-      // check if stage and therapeutic area exist
-      const [isStageExists, isTherapeuticAreaExist] = await Promise.all([
+      // Pre-fetch necessary data in parallel
+      const [
+        deal,
+        isDealWithSameNameExists,
+        user,
+        dealLeadResponse,
+        isStageExists,
+        isTherapeuticAreaExist
+      ] = await Promise.all([
+        Deal.findByPk(dealId),
+        Deal.findOne({
+          where: {
+            name: { [Sequelize.Op.iLike]: name },
+            id: { [Sequelize.Op.ne]: dealId },
+            isDeleted: false
+          }
+        }),
+        User.findByPk(userId),
+        User.findByPk(dealLead),
         Stage.findByPk(stage),
         TherapeuticArea.findByPk(therapeuticArea)
       ]);
 
-      if (!isStageExists) {
-        throw new CustomError('Stage not found.', statusCodes.BAD_REQUEST);
-      }
+      // Validations
+      if (!deal)
+        throw new CustomError('Deal not found.', statusCodes.NOT_FOUND);
 
-      if (!isTherapeuticAreaExist) {
+      if (isDealWithSameNameExists)
+        throw new CustomError(
+          'This deal name is already in use.',
+          statusCodes.CONFLICT
+        );
+
+      if (!user || user.roleId !== roles.SYSTEM_ADMIN)
+        throw new CustomError(
+          'Only system admin can update the deal',
+          statusCodes.UNAUTHORIZED
+        );
+
+      if (!dealLeadResponse || dealLeadResponse.roleId !== roles.DEAL_LEAD)
+        throw new CustomError(
+          'Deal can only be assigned to a deal lead.',
+          statusCodes.BAD_REQUEST
+        );
+
+      if (!isStageExists)
+        throw new CustomError('Stage not found.', statusCodes.BAD_REQUEST);
+
+      if (!isTherapeuticAreaExist)
         throw new CustomError(
           'Therapeutic Area not found',
           statusCodes.BAD_REQUEST
         );
+
+      // Initialize audit entries array
+      const auditEntries = [];
+
+      // Collect change information for audit trail
+      const userName = `${user.lastName}, ${user.firstName} `;
+
+      if (deal.name !== name) {
+        auditEntries.push({
+          dealId,
+          action: action.RENAMED,
+          entityType: entity.DEAL,
+          entityId: dealId,
+          fieldChanged: 'name',
+          oldValue: deal.name,
+          newValue: name,
+          performedBy: userId,
+          description: `${userName} renamed this deal from '${deal.name}' to '${name}'`
+        });
       }
 
-      // Log the stage change if stage is different
       if (deal.currentStage !== stage) {
+        const [oldStage, newStage] = await Promise.all([
+          Stage.findByPk(deal.currentStage),
+          Stage.findByPk(stage)
+        ]);
+        auditEntries.push({
+          dealId,
+          action: action.UPDATED,
+          entityType: entity.DEAL,
+          entityId: dealId,
+          fieldChanged: 'stage',
+          oldValue: oldStage.name,
+          newValue: newStage.name,
+          performedBy: userId,
+          description: `${userName} updated the stage from '${oldStage.name}' to '${newStage.name}'`
+        });
         await DealStageLog.create(
           {
             dealId: deal.id,
-            stageId: stage, // Log the new stage ID
-            startDate: new Date() // Start date of the new stage
+            stageId: stage,
+            startDate: new Date()
           },
           { transaction }
         );
       }
 
-      // update the deal
+      if (deal.therapeuticArea !== therapeuticArea) {
+        const [oldTherapeuticArea, newTherapeuticArea] = await Promise.all([
+          TherapeuticArea.findByPk(deal.therapeuticArea),
+          TherapeuticArea.findByPk(therapeuticArea)
+        ]);
+        auditEntries.push({
+          dealId,
+          action: action.UPDATED,
+          entityType: entity.DEAL,
+          entityId: dealId,
+          fieldChanged: 'therapeuticArea',
+          oldValue: oldTherapeuticArea.name,
+          newValue: newTherapeuticArea.name,
+          performedBy: userId,
+          description: `${userName} changed the therapeutic area from '${oldTherapeuticArea.name}' to '${newTherapeuticArea.name}'`
+        });
+      }
+
+      // Update the deal
       await deal.update(
         {
           name,
@@ -249,25 +297,24 @@ class DealService extends baseService {
         { transaction }
       );
 
-      // check who is the active deal lead of the deal
+      // Deal lead update logic with names
       const activeDealLeadMapping = await DealLeadMapping.findOne({
         where: { dealId, isDeleted: false }
       });
+      if (activeDealLeadMapping && activeDealLeadMapping.userId !== dealLead) {
+        const [oldDealLead, newDealLeadUser] = await Promise.all([
+          User.findByPk(activeDealLeadMapping.userId),
+          User.findByPk(dealLead)
+        ]);
 
-      // remove old deal lead from deal
-      if (
-        activeDealLeadMapping &&
-        activeDealLeadMapping.userId !== newDealLead
-      ) {
         await activeDealLeadMapping.update(
           { isDeleted: true, modifiedBy: userId },
           { transaction }
         );
 
         const inactiveDealLeadMapping = await DealLeadMapping.findOne({
-          where: { dealId, userId: newDealLead, isDeleted: true }
+          where: { dealId, userId: dealLead, isDeleted: true }
         });
-
         if (inactiveDealLeadMapping) {
           await inactiveDealLeadMapping.update(
             { isDeleted: false, modifiedBy: userId },
@@ -276,7 +323,7 @@ class DealService extends baseService {
         } else {
           await DealLeadMapping.create(
             {
-              userId: newDealLead,
+              userId: dealLead,
               dealId,
               createdBy: userId,
               modifiedBy: userId
@@ -284,10 +331,28 @@ class DealService extends baseService {
             { transaction }
           );
         }
+
+        // Log deal lead change
+        auditEntries.push({
+          dealId,
+          action: action.UPDATED,
+          entityType: entity.DEAL,
+          entityId: dealId,
+          fieldChanged: 'dealLead',
+          oldValue: `${oldDealLead.firstName} ${oldDealLead.lastName}`,
+          newValue: `${newDealLeadUser.firstName} ${newDealLeadUser.lastName}`,
+          performedBy: userId,
+          description: `${userName} changed the deal lead from '${oldDealLead.firstName} ${oldDealLead.lastName}' to '${newDealLeadUser.firstName} ${newDealLeadUser.lastName}'`
+        });
       }
 
+      // Commit transaction
       await transaction.commit();
-      return apiResponse.success(null, null, 'Deal updated successfully ');
+
+      // Enqueue audit entries asynchronously
+      auditEntries.forEach((entry) => createAuditTrailEntry(entry));
+
+      return apiResponse.success(null, null, 'Deal updated successfully');
     } catch (error) {
       if (transaction) await transaction.rollback();
       errorHandler.handle(error);
@@ -329,6 +394,9 @@ class DealService extends baseService {
         );
       }
 
+      // Retrieve username and role for audit entry
+      const userName = `${user.lastName}, ${user.firstName} `;
+
       // Soft delete the deal by setting the isDeleted flag to true
       await deal.update(
         { isDeleted: true, modifiedBy: userId },
@@ -344,7 +412,7 @@ class DealService extends baseService {
       // Hard delete associated DealWiseResourceInfo records
       await DealWiseResourceInfo.destroy({ where: { dealId }, transaction });
 
-      // Soft delete associated Resource deal mapping records
+      // Soft delete associated ResourceDealMapping records
       await ResourceDealMapping.update(
         { isDeleted: true },
         { where: { dealId }, transaction }
@@ -352,6 +420,19 @@ class DealService extends baseService {
 
       // Commit the transaction after all operations are successful
       await transaction.commit();
+
+      // Prepare audit trail data
+      const auditData = {
+        dealId,
+        action: action.REMOVED,
+        entityId: dealId,
+        entityType: entity.DEAL,
+        description: `${userName} deleted the deal '${deal.name}'`,
+        performedBy: userId
+      };
+
+      // Enqueue the audit trail entry asynchronously
+      createAuditTrailEntry(auditData);
 
       return apiResponse.success(null, null, 'Deal deleted successfully.');
     } catch (error) {
