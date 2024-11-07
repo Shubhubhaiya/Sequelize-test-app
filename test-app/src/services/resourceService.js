@@ -17,6 +17,8 @@ const roles = require('../config/roles');
 const BaseService = require('./baseService');
 const ResourceDetailResponseMapper = require('../models/response/resourceDetailResponseMapper');
 const ResourceListResponseMapper = require('../models/response/resourceListResponseMapper');
+const { entity, action } = require('../config/auditTrail');
+const { createAuditTrailEntry } = require('../utils/auditTrailEntry');
 
 class ResourceService extends BaseService {
   constructor() {
@@ -552,7 +554,7 @@ class ResourceService extends BaseService {
         throw new CustomError('User not found', statusCodes.BAD_REQUEST);
       }
 
-      // Check if the user is a System Admin
+      // Check if the user is a System Admin or Deal Lead
       if (
         currentUser.roleId !== roles.SYSTEM_ADMIN &&
         currentUser.roleId !== roles.DEAL_LEAD
@@ -562,11 +564,13 @@ class ResourceService extends BaseService {
           statusCodes.UNAUTHORIZED
         );
       }
+      const userName = `${currentUser.lastName}, ${currentUser.firstName}`;
 
       // Deal lead can only delete resources from their own deals
       if (currentUser.roleId === roles.DEAL_LEAD) {
         const dealLeadMapping = await DealLeadMapping.findOne({
-          where: { userId: currentUser.id, dealId, isDeleted: false }
+          where: { userId: currentUser.id, dealId, isDeleted: false },
+          transaction
         });
         if (!dealLeadMapping) {
           throw new CustomError(
@@ -593,6 +597,12 @@ class ResourceService extends BaseService {
         );
       }
 
+      // Fetch additional details for the audit trail description
+      const [resource, stage] = await Promise.all([
+        User.findByPk(resourceId),
+        Stage.findByPk(stageId)
+      ]);
+
       // Soft delete the resource
       await resourceMapping.update(
         { isDeleted: true, modifiedBy: userId },
@@ -618,6 +628,20 @@ class ResourceService extends BaseService {
       }
 
       await transaction.commit();
+
+      // Prepare audit trail data
+      const auditData = {
+        dealId,
+        action: action.REMOVED,
+        entityId: resourceId,
+        entityType: entity.RESOURCE,
+        description: `${userName} removed the resource '${resource.lastName}, ${resource.firstName}' from stage '${stage.name}'`,
+        performedBy: userId
+      };
+
+      // Enqueue the audit trail entry asynchronously
+      createAuditTrailEntry(auditData);
+
       return { message: 'Resource deleted successfully' };
     } catch (error) {
       if (transaction) await transaction.rollback();
