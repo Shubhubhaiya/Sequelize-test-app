@@ -146,7 +146,7 @@ class DealService extends baseService {
         action: action.CREATED,
         entityId: newDeal.id,
         entityType: entity.DEAL,
-        description: `${userName} created this New deal with name'${name}'`,
+        description: `${userName} created this New deal with name '${name}'`,
         performedBy: userId,
         actionDate: new Date()
       };

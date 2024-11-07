@@ -61,6 +61,8 @@ class ResourceService extends BaseService {
         }
       }
 
+      const userName = `${currentUser.lastName}, ${currentUser.firstName}`;
+
       // Fetch line functions and stages with names for mapping
       const lineFunctionIds = new Set(
         (await LineFunction.findAll({ transaction })).map((fn) => fn.id)
@@ -114,6 +116,7 @@ class ResourceService extends BaseService {
       const bulkNewMappings = [];
       const bulkNewResourceInfos = [];
       const successfullyMappedResources = new Set();
+      const auditTrailEntries = []; // Collect audit trail entries for logging
 
       // Map to keep track of the latest resource details per userId
       const resourceDetailsMap = new Map();
@@ -193,6 +196,16 @@ class ResourceService extends BaseService {
 
               // Add to newMappingKeys to prevent duplicates
               newMappingKeys.add(mappingKey);
+
+              // Add entry to audit trail for newly added resource
+              auditTrailEntries.push({
+                action: action.ADDED,
+                entityId: user.id,
+                entityType: entity.RESOURCE,
+                description: `${userName} added resource '${user.lastName}, ${user.firstName}' to stage '${stageNameMap.get(stageId)}'`,
+                performedBy: userId,
+                dealId
+              });
             }
           }
 
@@ -253,6 +266,9 @@ class ResourceService extends BaseService {
 
       // Commit transaction after processing all resources
       await transaction.commit();
+
+      // Enqueue audit trail entries asynchronously after transaction commit
+      auditTrailEntries.forEach((entry) => createAuditTrailEntry(entry));
 
       // Return appropriate response
       return failedResources.length > 0
