@@ -768,6 +768,9 @@ class ResourceService extends BaseService {
         throw new CustomError('User not found', statusCodes.BAD_REQUEST);
       }
 
+      const userName = `${currentUser.lastName}, ${currentUser.firstName}`;
+      const auditTrailEntries = [];
+
       // Deal Lead can only update resources for deals they lead
       if (currentUser.roleId === roles.DEAL_LEAD) {
         const dealLeadMapping = await DealLeadMapping.findOne({
@@ -792,20 +795,57 @@ class ResourceService extends BaseService {
         throw new CustomError('Resource not found', statusCodes.NOT_FOUND);
       }
 
+      // Fetch existing DealWiseResourceInfo for comparison
+      const existingResourceInfo = await DealWiseResourceInfo.findOne({
+        where: { dealId, resourceId },
+        transaction
+      });
+
+      if (!existingResourceInfo) {
+        throw new CustomError(
+          'Resource info not found for this deal',
+          statusCodes.NOT_FOUND
+        );
+      }
+
+      // Fetch the stage details to use its name in audit trail descriptions
+      const stage = await Stage.findByPk(stageId, { transaction });
+      if (!stage) {
+        throw new CustomError('Stage not found', statusCodes.NOT_FOUND);
+      }
+
       // If the email matches, simply update DealWiseResourceInfo
       if (existingResource.email.toLowerCase() === email.toLowerCase()) {
-        await DealWiseResourceInfo.update(
-          {
-            lineFunction,
-            vdrAccessRequested,
-            webTrainingStatus,
-            oneToOneDiscussion,
-            optionalColumn,
-            isCoreTeamMember,
-            modifiedBy: userId
-          },
-          { where: { dealId, resourceId }, transaction }
-        );
+        const fieldsToUpdate = {
+          lineFunction,
+          vdrAccessRequested,
+          webTrainingStatus,
+          oneToOneDiscussion,
+          optionalColumn,
+          isCoreTeamMember,
+          modifiedBy: userId
+        };
+
+        Object.keys(fieldsToUpdate).forEach((field) => {
+          if (
+            field !== 'modifiedBy' &&
+            existingResourceInfo[field] !== fieldsToUpdate[field]
+          ) {
+            auditTrailEntries.push({
+              dealId,
+              action: action.UPDATED,
+              entityId: resourceId,
+              entityType: entity.RESOURCE,
+              description: `${userName} updated '${field}' from '${existingResourceInfo[field]}' to '${fieldsToUpdate[field]}' for resource '${existingResource.lastName}, ${existingResource.firstName}'`,
+              performedBy: userId
+            });
+          }
+        });
+
+        await DealWiseResourceInfo.update(fieldsToUpdate, {
+          where: { dealId, resourceId },
+          transaction
+        });
       } else {
         // Handle case where the resource is being replaced
 
@@ -831,6 +871,15 @@ class ResourceService extends BaseService {
           { isDeleted: true, modifiedBy: userId },
           { transaction }
         );
+
+        auditTrailEntries.push({
+          dealId,
+          action: action.REMOVED,
+          entityId: resourceId,
+          entityType: entity.RESOURCE,
+          description: `${userName} removed resource '${existingResource.lastName}, ${existingResource.firstName}' from stage '${stage.name}'`,
+          performedBy: userId
+        });
 
         // Step 2: Check if the old resource is still part of any other stages within the deal
         const remainingStages = await ResourceDealMapping.findAll({
@@ -874,20 +923,20 @@ class ResourceService extends BaseService {
           transaction
         });
 
+        const newResourceInfoData = {
+          vdrAccessRequested,
+          webTrainingStatus,
+          oneToOneDiscussion,
+          optionalColumn,
+          isCoreTeamMember,
+          lineFunction,
+          modifiedBy: userId
+        };
+
         if (newResourceDealInfo) {
-          // Update the new resource's DealWiseResourceInfo
-          await newResourceDealInfo.update(
-            {
-              vdrAccessRequested,
-              webTrainingStatus,
-              oneToOneDiscussion,
-              optionalColumn,
-              isCoreTeamMember,
-              lineFunction,
-              modifiedBy: userId
-            },
-            { transaction }
-          );
+          await newResourceDealInfo.update(newResourceInfoData, {
+            transaction
+          });
         } else {
           // Create a new DealWiseResourceInfo entry for the new resource
           await DealWiseResourceInfo.create(
@@ -906,6 +955,15 @@ class ResourceService extends BaseService {
             { transaction }
           );
         }
+
+        auditTrailEntries.push({
+          action: action.UPDATED,
+          entityId: newResource.id,
+          entityType: entity.RESOURCE,
+          description: `${userName} replaced resource '${existingResource.lastName}, ${existingResource.firstName}' with '${newResource.lastName}, ${newResource.firstName}' in stage '${stage.name}'`,
+          performedBy: userId,
+          dealId
+        });
 
         // Step 5: Check if the new resource already has a mapping for this stage
         const existingMappingNewResource = await ResourceDealMapping.findOne({
@@ -948,6 +1006,10 @@ class ResourceService extends BaseService {
 
       // Commit the transaction
       await transaction.commit();
+
+      // Enqueue audit trail entries asynchronously
+      auditTrailEntries.forEach((entry) => createAuditTrailEntry(entry));
+
       return apiResponse.success(null, null, 'Resource updated successfully');
     } catch (error) {
       if (transaction) await transaction.rollback();
